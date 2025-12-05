@@ -14,3 +14,6 @@ colorlog==6.9.0
 beautifulsoup4==4.12.3
 setuptools==75.8.0
 tqdm==4.67.1
+psutil>=5.9.4
+pytelegrambotapi>=4.15.2
+bcrypt>=4.2.0

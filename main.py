@@ -15,6 +15,20 @@ while True:
     except ModuleNotFoundError:
         pip_main(["install", "-U", "bcrypt>=4.2.0"])
 
+while True:
+    try:
+        import psutil
+        break
+    except ModuleNotFoundError:
+        pip_main(["install", "-U", "psutil>=5.9.4"])
+
+while True:
+    try:
+        import telebot
+        break
+    except ModuleNotFoundError:
+        pip_main(["install", "-U", "pytelegrambotapi>=4.15.2"])
+
 import Utils.cardinal_tools
 import Utils.config_loader as cfg_loader
 from first_setup import first_setup
