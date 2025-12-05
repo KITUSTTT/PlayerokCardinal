@@ -3,6 +3,7 @@ commands='17'
 
 RED='\033[1;91m'
 CYAN='\033[1;96m'
+GREEN='\033[1;92m'
 PURPLE_LIGHT='\033[5;35m'
 RESET='\033[0m'
 
@@ -72,12 +73,12 @@ case $distro_version in
       exit 2
     fi
 
-    sudo tee /etc/apt/preferences.d/10deadsnakes-ppa >/dev/null <<EOF
+    if ! sudo tee /etc/apt/preferences.d/10deadsnakes-ppa >/dev/null <<EOF
 Package: *
 Pin: release o=LP-PPA-deadsnakes
 Pin-Priority: 100
 EOF
-    if $? -ne 0 ; then
+    then
       echo -e "${start_process_line}\nПроизошла ошибка при добавлении приоритета репозитория. (3.4/${commands})\n${end_process_line}"
       exit 2
     fi
@@ -227,7 +228,7 @@ sleep 2
 
 cd /home/$username/PlayerokCardinal
 
-su - $username -c "cd /home/$username/PlayerokCardinal && LANG=en_US.utf8 /home/$username/pyvenv/bin/python main.py"
+sudo -u $username bash -c "cd /home/$username/PlayerokCardinal && LANG=en_US.utf8 /home/$username/pyvenv/bin/python main.py" < /dev/tty
 
 echo -e "\n${GREEN}First setup completed! Starting bot as service...${RESET}\n"
 sleep 2
