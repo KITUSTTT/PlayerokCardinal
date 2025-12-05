@@ -29,6 +29,13 @@ while True:
     except ModuleNotFoundError:
         pip_main(["install", "-U", "pytelegrambotapi>=4.15.2"])
 
+while True:
+    try:
+        import tls_requests
+        break
+    except ModuleNotFoundError:
+        pip_main(["install", "-U", "wrapper-tls-requests>=1.1.4"])
+
 import Utils.cardinal_tools
 import Utils.config_loader as cfg_loader
 from first_setup import first_setup

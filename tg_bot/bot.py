@@ -7,7 +7,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from FunPayAPI import Account
+from PlayerokAPI import Account
 from tg_bot.utils import NotificationTypes
 
 if TYPE_CHECKING:
