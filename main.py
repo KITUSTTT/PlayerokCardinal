@@ -1,41 +1,49 @@
 import time
+import sys
+import os
+
+# Устанавливаем все зависимости ДО любых импортов
 from pip._internal.cli.main import main as pip_main
 
-while True:
-    try:
-        import lxml
-        break
-    except ModuleNotFoundError:
-        pip_main(["install", "-U", "lxml>=5.2.2"])
+def install_requirements():
+    """Устанавливает все зависимости из requirements.txt"""
+    # Словарь: имя пакета для pip -> имя модуля для импорта
+    requirements_map = {
+        "bs4==0.0.2": "bs4",
+        "curl-cffi==0.13.0": "curl_cffi",
+        "wrapper-tls-requests==1.1.4": "tls_requests",
+        "requests==2.32.3": "requests",
+        "requests-toolbelt==0.10.1": "requests_toolbelt",
+        "validators==0.34.0": "validators",
+        "asyncio==3.4.3": "asyncio",
+        "aiogram==3.10.0": "aiogram",
+        "lxml==5.2.2": "lxml",
+        "certifi==2025.1.31": "certifi",
+        "urllib3==1.26.16": "urllib3",
+        "colorama==0.4.6": "colorama",
+        "colorlog==6.9.0": "colorlog",
+        "beautifulsoup4==4.12.3": "bs4",
+        "setuptools==75.8.0": "setuptools",
+        "tqdm==4.67.1": "tqdm",
+        "psutil>=5.9.4": "psutil",
+        "pytelegrambotapi>=4.15.2": "telebot",
+        "bcrypt>=4.2.0": "bcrypt"
+    }
+    
+    for req, import_name in requirements_map.items():
+        try:
+            __import__(import_name)
+        except (ImportError, ModuleNotFoundError):
+            try:
+                print(f"Устанавливаю {req}...")
+                pip_main(["install", "-U", req, "--quiet"])
+            except Exception as e:
+                print(f"Ошибка при установке {req}: {e}")
 
-while True:
-    try:
-        import bcrypt
-        break
-    except ModuleNotFoundError:
-        pip_main(["install", "-U", "bcrypt>=4.2.0"])
+# Устанавливаем все зависимости
+install_requirements()
 
-while True:
-    try:
-        import psutil
-        break
-    except ModuleNotFoundError:
-        pip_main(["install", "-U", "psutil>=5.9.4"])
-
-while True:
-    try:
-        import telebot
-        break
-    except ModuleNotFoundError:
-        pip_main(["install", "-U", "pytelegrambotapi>=4.15.2"])
-
-while True:
-    try:
-        import tls_requests
-        break
-    except ModuleNotFoundError:
-        pip_main(["install", "-U", "wrapper-tls-requests>=1.1.4"])
-
+# Теперь импортируем модули
 import Utils.cardinal_tools
 import Utils.config_loader as cfg_loader
 from first_setup import first_setup
@@ -43,16 +51,14 @@ from colorama import Fore, Style
 from Utils.logger import LOGGER_CONFIG
 import logging.config
 import colorama
-import sys
-import os
 from cardinal import Cardinal
 import Utils.exceptions as excs
 
-logo = """\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m
+logo = """\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m
 \033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;52m>\033[0m\033[38;5;88m|\033[0m\033[38;5;124m}\033[0m\033[38;5;124m]\033[0m\033[38;5;124m]\033[0m\033[38;5;88m?\033[0m\033[38;5;88m?\033[0m\033[38;5;124m+\033[0m\033[38;5;124m+\033[0m\033[38;5;124m+\033[0m\033[38;5;124m+\033[0m\033[38;5;88m?\033[0m\033[38;5;88m?\033[0m\033[38;5;124m]\033[0m\033[38;5;124m]\033[0m\033[38;5;124m]\033[0m\033[38;5;88m|\033[0m\033[38;5;52m>\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m
 \033[38;5;0m.\033[0m\033[38;5;0m'\033[0m\033[38;5;15mP\033[0m\033[38;5;15mL\033[0m\033[38;5;15mA\033[0m\033[38;5;15mY\033[0m\033[38;5;15mE\033[0m\033[38;5;15mR\033[0m\033[38;5;15mO\033[0m\033[38;5;15mK\033[0m\033[38;5;0m \033[0m\033[38;5;15mC\033[0m\033[38;5;15mA\033[0m\033[38;5;15mR\033[0m\033[38;5;15mD\033[0m\033[38;5;15mI\033[0m\033[38;5;15mN\033[0m\033[38;5;15mA\033[0m\033[38;5;15mL\033[0m\033[38;5;0m'\033[0m\033[38;5;0m.\033[0m
 \033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;52m>\033[0m\033[38;5;88m|\033[0m\033[38;5;124m]\033[0m\033[38;5;124m]\033[0m\033[38;5;124m+\033[0m\033[38;5;88m?\033[0m\033[38;5;88m?\033[0m\033[38;5;124m+\033[0m\033[38;5;124m+\033[0m\033[38;5;124m+\033[0m\033[38;5;124m+\033[0m\033[38;5;88m?\033[0m\033[38;5;88m?\033[0m\033[38;5;124m+\033[0m\033[38;5;124m]\033[0m\033[38;5;124m]\033[0m\033[38;5;88m|\033[0m\033[38;5;52m>\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m
-\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m"""
+\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m"""
 
 VERSION = "1.0.0"
 
@@ -149,4 +155,3 @@ except:
     logger.critical("Завершаю программу...")
     time.sleep(5)
     sys.exit()
-
