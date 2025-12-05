@@ -222,7 +222,16 @@ echo -e "#######################################################################
 sleep 3
 clear
 
-sudo -u $username LANG=en_US.utf8 /home/$username/pyvenv/bin/python /home/$username/PlayerokCardinal/main.py
+echo -e "\n${CYAN}Starting first setup. Please answer all questions...${RESET}\n"
+sleep 2
+
+cd /home/$username/PlayerokCardinal
+sudo -u $username LANG=en_US.utf8 /home/$username/pyvenv/bin/python /home/$username/PlayerokCardinal/main.py < /dev/tty
+
+echo -e "\n${GREEN}First setup completed! Starting bot as service...${RESET}\n"
+sleep 2
+
+sudo systemctl daemon-reload
 sudo systemctl start PlayerokCardinal@$username.service
 
 clear
