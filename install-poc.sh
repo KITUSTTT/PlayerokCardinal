@@ -226,7 +226,8 @@ echo -e "\n${CYAN}Starting first setup. Please answer all questions...${RESET}\n
 sleep 2
 
 cd /home/$username/PlayerokCardinal
-sudo -u $username LANG=en_US.utf8 /home/$username/pyvenv/bin/python /home/$username/PlayerokCardinal/main.py < /dev/tty
+
+su - $username -c "cd /home/$username/PlayerokCardinal && LANG=en_US.utf8 /home/$username/pyvenv/bin/python main.py"
 
 echo -e "\n${GREEN}First setup completed! Starting bot as service...${RESET}\n"
 sleep 2
