@@ -1,0 +1,34 @@
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/%i/PlayerokCardinal
+ExecStart=/home/%i/pyvenv/bin/python /home/%i/PlayerokCardinal/main.py
+Restart=always
+RestartSec=10s
+SyslogIdentifier=PlayerokCardinal-%i
+User=%i
+Environment="LANG=en_US.utf8"
+Environment="POC_IS_RUNNING_AS_SERVICE=1"
+
+ExecStartPre=+/usr/bin/install -m 755 -o root -g root -d /run/PlayerokCardinal
+ExecStartPre=+/usr/bin/install -m 755 -o %i -g root -d /run/PlayerokCardinal/%i
+
+PIDFile=/run/PlayerokCardinal/%i/PlayerokCardinal.pid
+
+DevicePolicy=closed
+NoNewPrivileges=yes
+PrivateDevices=yes
+PrivateMounts=yes
+PrivateTmp=yes
+PrivateUsers=yes
+ProtectHostname=yes
+ProtectSystem=full
+ReadWritePaths=/home/%i/PlayerokCardinal /home/%i/pyvenv -/run/PlayerokCardinal
+
+[Unit]
+After=network.target
+Description=PlayerokCardinal Bot Service (on %I)
+Documentation=https://github.com/KITUSTTT/PlayerokCardinal
+
