@@ -223,14 +223,28 @@ echo -e "#######################################################################
 sleep 3
 clear
 
-echo -e "\n${CYAN}Starting first setup. Please answer all questions...${RESET}\n"
-sleep 2
+echo -e "\n${CYAN}Начинаю первичную настройку. Пожалуйста, ответь на все вопросы...${RESET}\n"
+echo -e "${CYAN}ВНИМАНИЕ: Сейчас будет запущена первичная настройка.${RESET}"
+echo -e "${CYAN}Пожалуйста, ответь на все вопросы, которые появятся на экране.${RESET}\n"
+sleep 3
 
-cd /home/$username/PlayerokCardinal
+# Проверяем, есть ли уже конфиг
+if [ ! -f "/home/$username/PlayerokCardinal/configs/_main.cfg" ]; then
+    # Запускаем first_setup с правильным перенаправлением stdin (как в FunPayCardinal)
+    sudo -u $username LANG=en_US.utf8 /home/$username/pyvenv/bin/python /home/$username/PlayerokCardinal/main.py <&1
+    
+    # Проверяем, создался ли конфиг
+    if [ ! -f "/home/$username/PlayerokCardinal/configs/_main.cfg" ]; then
+        echo -e "\n${RED}ОШИБКА: Конфиг не был создан!${RESET}"
+        echo -e "${CYAN}Попробуй запустить вручную:${RESET}"
+        echo -e "${CYAN}sudo -u $username bash -c 'cd /home/$username/PlayerokCardinal && /home/$username/pyvenv/bin/python main.py'${RESET}"
+        exit 1
+    fi
+    echo -e "\n${GREEN}✓ Первичная настройка завершена!${RESET}\n"
+else
+    echo -e "\n${CYAN}Конфиг уже существует, пропускаю первичную настройку.${RESET}\n"
+fi
 
-sudo -u $username bash -c "cd /home/$username/PlayerokCardinal && LANG=en_US.utf8 /home/$username/pyvenv/bin/python main.py" < /dev/tty
-
-echo -e "\n${GREEN}First setup completed! Starting bot as service...${RESET}\n"
 sleep 2
 
 sudo systemctl daemon-reload
