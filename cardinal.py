@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from configparser import ConfigParser
 
 import PlayerokAPI
-from PlayerokAPI.listener import EventListener
+from PlayerokAPI.listener.listener import EventListener
 from PlayerokAPI.listener.events import *
 from Utils import cardinal_tools
 import handlers
