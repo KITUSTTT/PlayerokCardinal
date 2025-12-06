@@ -149,18 +149,24 @@ def get_releases(from_tag: str) -> list[Release] | None:
             logger.warning(_("upd_no_tags_found"))
             return None
         
+        logger.debug(f"Всего получено релизов: {len(json_response)}")
+        
         result = []
         to_append = False
         for el in json_response[::-1]:
-            if (name := el.get("tag_name")) == from_tag:
+            tag_name = el.get("tag_name")
+            logger.debug(f"Проверяю релиз: {tag_name}")
+            
+            if tag_name == from_tag:
                 to_append = True
+                logger.info(_("upd_found_tag", from_tag))
 
             if to_append:
-                description = el.get("body")
+                description = el.get("body", "")
                 sources = el.get("zipball_url")
                 if "#unskippable" in description:
                     to_append = False
-                release = Release(name, description, sources)
+                release = Release(tag_name, description, sources)
                 result.append(release)
                 if not to_append:
                     break
@@ -168,7 +174,7 @@ def get_releases(from_tag: str) -> list[Release] | None:
         if result:
             logger.info(_("upd_releases_found", len(result)))
         else:
-            logger.warning(_("upd_no_tags_found"))
+            logger.warning(_("upd_no_releases_after_tag", from_tag))
         return result if result else None
     except:
         logger.debug("TRACEBACK", exc_info=True)
@@ -183,20 +189,27 @@ def get_new_releases(current_tag) -> int | list[Release]:
 
     :return: список объектов релизов или код ошибки:
         1 - произошла ошибка при получении списка тегов.
-        2 - текущий тег является последним.
+        2 - текущий тег является последним (или релизов нет).
         3 - не удалось получить данные о релизе.
     """
     tags = get_tags(current_tag)
     if tags is None:
+        logger.info(_("upd_no_tags_api"))
         return 1
 
+    logger.debug(f"Список тегов: {tags}")
+    
     next_tag = get_next_tag(tags, current_tag)
     if next_tag is None:
+        logger.info(_("upd_current_is_latest", current_tag))
         return 2
 
+    logger.info(_("upd_next_tag_found", next_tag))
+    
     releases = get_releases(next_tag)
     if releases is None:
-        return 3
+        logger.warning(_("upd_no_releases_data"))
+        return 2  # Если релизов нет, значит текущая версия последняя
     return releases
 
 

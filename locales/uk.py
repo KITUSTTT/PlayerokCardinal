@@ -648,4 +648,9 @@ upd_checking_releases = "Перевірка релізів починаючи з
 upd_no_more_releases = "Більше релізів не знайдено."
 upd_found_tag = "Знайдено тег: {}"
 upd_releases_found = "Знайдено релізів: {}"
+upd_no_releases_after_tag = "Немає релізів після тегу {}"
+upd_no_tags_api = "Не вдалося отримати теги з GitHub API"
+upd_current_is_latest = "Поточний тег {} є останнім"
+upd_next_tag_found = "Наступний тег: {}"
+upd_no_releases_data = "Не вдалося отримати дані про релізи"
 

@@ -595,24 +595,16 @@ class TGBot:
             return
         
         logger.info(f"Пользователь @{m.from_user.username} (ID: {m.from_user.id}) проверяет обновления.")
-        self.bot.send_message(m.chat.id, "🔍 Проверяю наличие обновлений...")
-        
         curr_tag = f"v{self.cardinal.VERSION}"
-        logger.info(f"Текущая версия: {curr_tag}")
-        
         releases = updater.get_new_releases(curr_tag)
-        
         if isinstance(releases, int):
             errors = {
                 1: ["update_no_tags", ()],
                 2: ["update_lasted", (curr_tag,)],
                 3: ["update_get_error", ()],
             }
-            logger.warning(f"Ошибка при проверке обновлений: код {releases}")
             self.bot.send_message(m.chat.id, _(errors[releases][0], *errors[releases][1]))
             return
-        
-        logger.info(f"Найдено обновлений: {len(releases)}")
         for release in releases:
             self.bot.send_message(m.chat.id, _("update_available", release.name, release.description))
             time.sleep(1)
@@ -649,24 +641,16 @@ class TGBot:
             return
         
         logger.info(f"Пользователь @{m.from_user.username} (ID: {m.from_user.id}) запустил обновление.")
-        self.bot.send_message(m.chat.id, "🔍 Проверяю наличие обновлений...")
-        
         curr_tag = f"v{self.cardinal.VERSION}"
-        logger.info(f"Текущая версия: {curr_tag}")
-        
         releases = updater.get_new_releases(curr_tag)
-        
         if isinstance(releases, int):
             errors = {
                 1: ["update_no_tags", ()],
                 2: ["update_lasted", (curr_tag,)],
                 3: ["update_get_error", ()],
             }
-            logger.warning(f"Ошибка при проверке обновлений: код {releases}")
             self.bot.send_message(m.chat.id, _(errors[releases][0], *errors[releases][1]))
             return
-
-        logger.info(f"Найдено обновлений: {len(releases)}")
         if not self.create_backup(m):
             return
         release = releases[-1]
