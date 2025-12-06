@@ -74,7 +74,7 @@ class TGBot:
             "restart": "cmd_restart",
             "check_updates": "cmd_check_updates",
             "update": "cmd_update",
-            "golden_key": "cmd_golden_key",
+            "token": "cmd_token",
             "ban": "cmd_ban",
             "unban": "cmd_unban",
             "black_list": "cmd_black_list",
@@ -343,54 +343,54 @@ class TGBot:
 
     def act_change_cookie(self, m: Message):
         """
-        Активирует режим ввода golden_key.
+        Активирует режим ввода token.
         """
         if m.from_user.id not in self.authorized_users:
             self.reg_admin(m)
             return
-        result = self.bot.send_message(m.chat.id, _("act_change_golden_key"), reply_markup=skb.CLEAR_STATE_BTN())
+        result = self.bot.send_message(m.chat.id, _("act_change_token"), reply_markup=skb.CLEAR_STATE_BTN())
         self.set_state(m.chat.id, result.id, m.from_user.id, CBT.CHANGE_GOLDEN_KEY)
 
     def change_cookie(self, m: Message):
         """
-        Меняет golden_key аккаунта FunPay.
+        Меняет token аккаунта Playerok.
         """
         self.clear_state(m.chat.id, m.from_user.id, True)
-        golden_key = m.text
-        if len(golden_key) != 32 or golden_key != golden_key.lower() or len(golden_key.split()) != 1:
-            self.bot.send_message(m.chat.id, _("cookie_incorrect_format"))
+        token = m.text.strip()
+        if not token or len(token.split()) != 1:
+            self.bot.send_message(m.chat.id, _("token_incorrect_format"))
             return
         self.bot.delete_message(m.chat.id, m.id)
-        new_account = Account(golden_key, self.cardinal.account.user_agent, proxy=self.cardinal.proxy,
-                              locale=self.cardinal.account.locale)
+        new_account = Account(token, self.cardinal.account.user_agent, proxy=self.cardinal.proxy)
         try:
             new_account.get()
         except:
             logger.warning("Произошла ошибка")  # locale
             logger.debug("TRACEBACK", exc_info=True)
-            self.bot.send_message(m.chat.id, _("cookie_error"))
+            self.bot.send_message(m.chat.id, _("token_error"))
             return
 
         one_acc = False
         if new_account.id == self.cardinal.account.id or self.cardinal.account.id is None:
             one_acc = True
-            self.cardinal.account.golden_key = golden_key
+            self.cardinal.account.token = token
             try:
                 self.cardinal.account.get()
+                self.cardinal.balance = self.cardinal.get_balance()
             except:
                 logger.warning("Произошла ошибка")  # locale
                 logger.debug("TRACEBACK", exc_info=True)
-                self.bot.send_message(m.chat.id, _("cookie_error"))
+                self.bot.send_message(m.chat.id, _("token_error"))
                 return
-            accs = f" (<a href='https://funpay.com/users/{new_account.id}/'>{new_account.username}</a>)"
+            accs = f" (<a href='https://playerok.com/users/{new_account.id}/'>{new_account.username}</a>)"
         else:
-            accs = f" (<a href='https://funpay.com/users/{self.cardinal.account.id}/'>" \
-                   f"{self.cardinal.account.username}</a> ➔ <a href='https://funpay.com/users/{new_account.id}/'>" \
+            accs = f" (<a href='https://playerok.com/users/{self.cardinal.account.id}/'>" \
+                   f"{self.cardinal.account.username}</a> ➔ <a href='https://playerok.com/users/{new_account.id}/'>" \
                    f"{new_account.username}</a>)"
 
-        self.cardinal.MAIN_CFG.set("FunPay", "golden_key", golden_key)
+        self.cardinal.MAIN_CFG.set("Playerok", "token", token)
         self.cardinal.save_config(self.cardinal.MAIN_CFG, "configs/_main.cfg")
-        self.bot.send_message(m.chat.id, f'{_("cookie_changed", accs)}{_("cookie_changed2") if not one_acc else ""}',
+        self.bot.send_message(m.chat.id, f'{_("token_changed", accs)}{_("token_changed2") if not one_acc else ""}',
                               disable_web_page_preview=True)
 
     def update_profile(self, c: CallbackQuery):
@@ -398,7 +398,7 @@ class TGBot:
         try:
             self.cardinal.account.get()
             self.cardinal.balance = self.cardinal.get_balance()
-        except:
+        except Exception as e:
             self.bot.edit_message_text(_("profile_updating_error"), new_msg.chat.id, new_msg.id)
             logger.debug("TRACEBACK", exc_info=True)
             self.bot.answer_callback_query(c.id)
@@ -708,7 +708,7 @@ class TGBot:
 
     def power_off(self, c: CallbackQuery):
         """
-        Отключает FPC.
+        Отключает POC.
         """
         split = c.data.split(":")
         state = int(split[1])
@@ -897,7 +897,7 @@ class TGBot:
                     last_by_vertex == i.by_vertex:
                 author = ""
             elif i.author_id == self.cardinal.account.id:
-                author = f"<i><b>🤖 {_('you')} (<i>FPC</i>):</b></i> " if i.by_bot else f"<i><b>🫵 {_('you')}:</b></i> "
+                author = f"<i><b>🤖 {_('you')} (<i>POC</i>):</b></i> " if i.by_bot else f"<i><b>🫵 {_('you')}:</b></i> "
                 if i.is_autoreply:
                     author = f"<i><b>📦 {_('you')} ({i.badge}):</b></i> "
             elif i.author_id == 0:
@@ -1011,7 +1011,7 @@ class TGBot:
 
     def switch_param(self, c: CallbackQuery):
         """
-        Переключает переключаемые настройки FPC.
+        Переключает переключаемые настройки POC.
         """
         split = c.data.split(":")
         section, option = split[1], split[2]
@@ -1068,9 +1068,9 @@ class TGBot:
             "ad": (_("desc_ad"), skb.AD_SETTINGS, []),
             "mv": (_("desc_mv"), kb.new_message_view_settings, [self.cardinal]),
             "rr": (_("desc_or"), kb.review_reply_settings, [self.cardinal]),
-            "gr": (_("desc_gr", utils.escape(self.cardinal.MAIN_CFG['Greetings']['greetingsText'])),
+            "gr": (_("desc_gr", utils.escape(self.cardinal.MAIN_CFG.get('Greetings', {}).get('greetingsText', ''))),
                    kb.greeting_settings, [self.cardinal]),
-            "oc": (_("desc_oc", utils.escape(self.cardinal.MAIN_CFG['OrderConfirm']['replyText'])),
+            "oc": (_("desc_oc", utils.escape(self.cardinal.MAIN_CFG.get('OrderConfirm', {}).get('replyText', ''))),
                    kb.order_confirm_reply_settings, [self.cardinal])
         }
 
@@ -1155,7 +1155,7 @@ class TGBot:
 
         self.msg_handler(self.send_settings_menu, commands=["menu", "start"])
         self.msg_handler(self.send_profile, commands=["profile"])
-        self.msg_handler(self.act_change_cookie, commands=["change_cookie", "golden_key"])
+        self.msg_handler(self.act_change_cookie, commands=["change_cookie", "token"])
         self.msg_handler(self.change_cookie, func=lambda m: self.check_state(m.chat.id, m.from_user.id,
                                                                              CBT.CHANGE_GOLDEN_KEY))
         self.cbq_handler(self.update_profile, lambda c: c.data == CBT.UPDATE_PROFILE)

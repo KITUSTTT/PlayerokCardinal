@@ -211,7 +211,7 @@ bot_started = """✅ Telegram bot is running!\n
 🔃 As soon as <i>FunPay Cardinal</i> is initialized, this message will change.\n
 📋 If <i>FPC</i> does not initialize for a long time, check the logs with /logs"""
 
-fpc_init = """✅ <b><u>FunPay Cardinal initialized!</u></b>\n
+poc_init = """✅ <b><u>Playerok Cardinal initialized!</u></b>\n
 ℹ️ <b><i>Version:</i></b> <code>{}</code>
 👑 <b><i>Account:</i></b>  <code>{}</code> | <code>{}</code>
 💰 <b><i>Balance:</i></b> <code>{}₽, {}$, {}€</code>
@@ -345,11 +345,11 @@ refund_complete = "✅ The #{} order has been refunded."
 updating_profile = "Updating account statistics (this may take some time)..."
 profile_updating_error = "❌ Failed to update account statistics."
 
-act_change_golden_key = "Enter golden_key"
-cookie_changed = "✅ golden_key successfully changed{}.\n"
-cookie_changed2 = "Restart the bot with the /restart command."
-cookie_incorrect_format = "❌ Incorrect format of golden_key. Please try again."
-cookie_error = "❌ Authorization failed. The golden_key might be incorrect?"
+act_change_token = "Enter token"
+token_changed = "✅ token successfully changed{}.\n"
+token_changed2 = "Restart the bot with the /restart command."
+token_incorrect_format = "❌ Incorrect format of token. Please try again."
+token_error = "❌ Authorization failed. The token might be incorrect?"
 
 ad_lot_not_found_err = "❌ Lot with index <code>{}</code> not found."
 ad_already_ad_err = "❌ Lot <code>{}</code> is already set up for auto-delivery."
@@ -469,7 +469,7 @@ desc_proxy = "Here you can set up the proxy."
 cmd_menu = "open settings"
 cmd_language = "change language"
 cmd_profile = "account statistics"
-cmd_golden_key = "change golden_key"
+cmd_token = "change token"
 cmd_test_lot = "create one-time delivery key"
 cmd_upload_chat_img = "(chat) upload an image to FunPay"
 cmd_upload_offer_img = "(lot) upload an image to FunPay"

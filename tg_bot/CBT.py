@@ -398,7 +398,7 @@ Callback для отключения бота.
 Использование: CBT.SHUT_DOWN:stage:instance_id
 
 stage: int - текущая стадия подтверждения (0-6).
-instance_id: int - ID запуска FPC.
+instance_id: int - ID запуска POC.
 """
 
 CANCEL_SHUTTING_DOWN = "38"
@@ -639,9 +639,9 @@ User-state: ожидается сообщение с кулдауном прив
 
 CHANGE_GOLDEN_KEY = "65"
 """
-Callback для активации режима ввода golden_key.
+Callback для активации режима ввода token.
 
-User-state: ожидается сообщение с golden_key.
+User-state: ожидается сообщение с token.
 """
 
 CONFIG_LOADER = "66"

@@ -256,16 +256,34 @@ def generate_profile_text(cardinal: Cardinal) -> str:
     """
     account = cardinal.account  # locale
     balance = cardinal.balance
+    if balance is None:
+        balance = cardinal.get_balance()
+    
+    # Получаем статистику аккаунта
+    active_deals = 0
+    try:
+        if hasattr(account, 'profile') and account.profile and hasattr(account.profile, 'stats'):
+            if hasattr(account.profile.stats, 'deals') and account.profile.stats.deals:
+                if hasattr(account.profile.stats.deals, 'incoming') and account.profile.stats.deals.incoming:
+                    active_deals = getattr(account.profile.stats.deals.incoming, 'total', 0)
+    except:
+        pass
+    
+    # Форматируем баланс (в PlayerokAPI баланс в копейках/центах)
+    balance_rub = balance.value / 100 if balance.value else 0
+    balance_available = balance.available / 100 if balance.available else 0
+    balance_frozen = balance.frozen / 100 if balance.frozen else 0
+    
     return f"""Статистика аккаунта <b><i>{account.username}</i></b>
 
 <b>ID:</b> <code>{account.id}</code>
-<b>Незавершенных заказов:</b> <code>{account.active_sales}</code>
+<b>Незавершенных сделок:</b> <code>{active_deals}</code>
 <b>Баланс:</b> 
-    <b>₽:</b> <code>{balance.total_rub}₽</code>, доступно для вывода <code>{balance.available_rub}₽</code>.
-    <b>$:</b> <code>{balance.total_usd}$</code>, доступно для вывода <code>{balance.available_usd}$</code>.
-    <b>€:</b> <code>{balance.total_eur}€</code>, доступно для вывода <code>{balance.available_eur}€</code>.
+    <b>Общий:</b> <code>{balance_rub:.2f}₽</code>
+    <b>Доступно:</b> <code>{balance_available:.2f}₽</code>
+    <b>Заморожено:</b> <code>{balance_frozen:.2f}₽</code>
 
-<i>Обновлено:</i>  <code>{time.strftime('%H:%M:%S', time.localtime(account.last_update))}</code>"""
+<i>Обновлено:</i>  <code>{time.strftime('%H:%M:%S')}</code>"""
 
 
 def generate_lot_info_text(lot_obj: configparser.SectionProxy) -> str:

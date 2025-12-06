@@ -10,7 +10,7 @@ import zipfile
 import shutil
 import json
 
-logger = getLogger("FPC.update_checker")
+logger = getLogger("POC.update_checker")
 localizer = Localizer()
 _ = localizer.translate
 

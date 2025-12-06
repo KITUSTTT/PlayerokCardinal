@@ -258,7 +258,7 @@ def init_uploader(cardinal: Cardinal):
             .add(Button("◀️Назад", callback_data=f"{CBT.PLUGINS_LIST}:{offset}"))
         bot.send_message(m.chat.id,
                          f"✅ Плагин <code>{utils.escape(m.document.file_name)}</code> успешно загружен.\n\n"
-                         f"⚠️Чтобы плагин активировался, <u><b>перезагрузите FPC!</b></u> (/restart)",
+                         f"⚠️Чтобы плагин активировался, <u><b>перезагрузите POC!</b></u> (/restart)",
                          reply_markup=keyboard)
 
     def send_funpay_image(m: types.Message):

@@ -79,6 +79,7 @@ class Cardinal(object):
         self.running = False
         self.run_id = 0
         self.start_time = int(time.time())
+        self.instance_id = id(self)  # ID экземпляра для проверки при выключении
         self.blacklist = cardinal_tools.load_blacklist()
         
         self.autoresponse_enabled = self.MAIN_CFG["Playerok"].get("autoResponse") == "1"
@@ -92,6 +93,28 @@ class Cardinal(object):
         self.item_paid_handlers = []
         self.item_sent_handlers = []
         self.deal_confirmed_handlers = []
+        
+        self.balance = None
+
+    def get_balance(self):
+        """Получает баланс аккаунта"""
+        try:
+            # Получаем профиль аккаунта
+            if hasattr(self.account, 'profile') and self.account.profile:
+                if hasattr(self.account.profile, 'balance') and self.account.profile.balance:
+                    return self.account.profile.balance
+            # Если баланс не найден, обновляем данные аккаунта
+            self.account.get()
+            if hasattr(self.account, 'profile') and self.account.profile and hasattr(self.account.profile, 'balance'):
+                return self.account.profile.balance
+            # Создаем пустой баланс если не найден
+            from PlayerokAPI.types import AccountBalance
+            return AccountBalance(id="", value=0, frozen=0, available=0, withdrawable=0, pending_income=0)
+        except Exception as e:
+            logger.error(f"$REDОшибка при получении баланса: $YELLOW{e}$RESET")
+            logger.debug("TRACEBACK", exc_info=True)
+            from PlayerokAPI.types import AccountBalance
+            return AccountBalance(id="", value=0, frozen=0, available=0, withdrawable=0, pending_income=0)
 
     def __init_account(self):
         """Инициализирует аккаунт"""
@@ -102,6 +125,7 @@ class Cardinal(object):
         while True:
             try:
                 profile = self.account.get()
+                self.balance = self.get_balance()
                 logger.info(f"$GREENУспешно авторизован как: $YELLOW{profile.username}$RESET")
                 cardinal_tools.set_console_title(f"Playerok Cardinal - {profile.username}")
                 break
@@ -200,6 +224,12 @@ class Cardinal(object):
     @property
     def block_tg_login(self) -> bool:
         return self.MAIN_CFG["Telegram"].get("blockLogin", "0") == "1"
+    
+    @staticmethod
+    def save_config(config: ConfigParser, path: str):
+        """Сохраняет конфиг в файл"""
+        with open(path, "w", encoding="utf-8") as f:
+            config.write(f)
 
     def send_message(self, chat_id: int, text: str, chat_name: str = ""):
         """Отправляет сообщение в чат"""
