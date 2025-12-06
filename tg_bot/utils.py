@@ -269,24 +269,10 @@ def generate_profile_text(cardinal: Cardinal) -> str:
     except:
         pass
     
-    # Форматируем баланс (в PlayerokAPI баланс приходит в копейках, нужно делить на 100)
-    # Но если значение меньше 100, возможно это уже в рублях
-    if balance.value:
-        # Если значение >= 100, значит в копейках, делим на 100
-        # Если значение < 100, возможно это уже в рублях, но обычно это копейки
-        balance_rub = balance.value / 100
-    else:
-        balance_rub = 0
-    
-    if balance.available:
-        balance_available = balance.available / 100
-    else:
-        balance_available = 0
-    
-    if balance.frozen:
-        balance_frozen = balance.frozen / 100
-    else:
-        balance_frozen = 0
+    # Форматируем баланс (баланс уже в рублях, не делим на 100)
+    balance_rub = balance.value if balance.value else 0
+    balance_available = balance.available if balance.available else 0
+    balance_frozen = balance.frozen if balance.frozen else 0
     
     return f"""Статистика аккаунта <b><i>{account.username}</i></b>
 

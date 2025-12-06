@@ -207,9 +207,9 @@ class Cardinal(object):
         
         logger.info("$GREENCardinal инициализирован успешно!$RESET")
         
-        # Вызываем post_init_handlers с небольшой задержкой, чтобы бот успел отправить bot_started
+        # Вызываем post_init_handlers с задержкой, чтобы бот успел отправить bot_started
         import time
-        time.sleep(0.5)  # Даем время боту отправить сообщение bot_started
+        time.sleep(2)  # Даем время боту отправить сообщение bot_started и заполнить init_messages
         self.run_handlers(self.post_init_handlers, (self,))
         
         return self
@@ -271,10 +271,23 @@ class Cardinal(object):
         return self.MAIN_CFG["Telegram"].get("blockLogin", "0") == "1"
     
     @staticmethod
-    def save_config(config: ConfigParser, path: str):
+    def save_config(config: dict | ConfigParser, path: str):
         """Сохраняет конфиг в файл"""
-        with open(path, "w", encoding="utf-8") as f:
-            config.write(f)
+        import configparser
+        if isinstance(config, dict):
+            # Если config это dict, создаем ConfigParser и заполняем его
+            cfg = configparser.ConfigParser(delimiters=(":",), interpolation=None)
+            cfg.optionxform = str
+            for section_name, section_data in config.items():
+                cfg.add_section(section_name)
+                for key, value in section_data.items():
+                    cfg.set(section_name, key, str(value))
+            with open(path, "w", encoding="utf-8") as f:
+                cfg.write(f)
+        else:
+            # Если config это ConfigParser, сохраняем как обычно
+            with open(path, "w", encoding="utf-8") as f:
+                config.write(f)
 
     def send_message(self, chat_id: int, text: str, chat_name: str = ""):
         """Отправляет сообщение в чат"""

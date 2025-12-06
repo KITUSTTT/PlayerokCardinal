@@ -222,8 +222,8 @@ def create_greeting_text(cardinal: Cardinal) -> str:
     except:
         pass
     
-    # Форматируем баланс (в PlayerokAPI баланс приходит в копейках, нужно делить на 100)
-    balance_rub = balance.value / 100 if balance.value else 0
+    # Форматируем баланс (баланс уже в рублях, не делим на 100)
+    balance_rub = balance.value if balance.value else 0
     
     lines = [
         f"* {greetings}, $CYAN{account.username}.",

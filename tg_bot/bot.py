@@ -388,7 +388,9 @@ class TGBot:
                    f"{self.cardinal.account.username}</a> ➔ <a href='https://playerok.com/users/{new_account.id}/'>" \
                    f"{new_account.username}</a>)"
 
-        self.cardinal.MAIN_CFG.set("Playerok", "token", token)
+        if "Playerok" not in self.cardinal.MAIN_CFG:
+            self.cardinal.MAIN_CFG["Playerok"] = {}
+        self.cardinal.MAIN_CFG["Playerok"]["token"] = token
         self.cardinal.save_config(self.cardinal.MAIN_CFG, "configs/_main.cfg")
         self.bot.send_message(m.chat.id, f'{_("token_changed", accs)}{_("token_changed2") if not one_acc else ""}',
                               disable_web_page_preview=True)
@@ -516,6 +518,8 @@ class TGBot:
         preview = f"<a href=\"https://sfunpay.com/s/chat/zb/wl/zbwl4vwc8cc1wsftqnx5.jpg\">⁢</a>" if not \
             utils.has_brand_mark(watermark) else \
             f"<a href=\"https://sfunpay.com/s/chat/kd/8i/kd8isyquw660kcueck3g.jpg\">⁢</a>"
+        if "Other" not in self.cardinal.MAIN_CFG:
+            self.cardinal.MAIN_CFG["Other"] = {}
         self.cardinal.MAIN_CFG["Other"]["watermark"] = watermark
         self.cardinal.save_config(self.cardinal.MAIN_CFG, "configs/_main.cfg")
         if watermark:
@@ -792,6 +796,8 @@ class TGBot:
 
     def edit_greetings_text(self, m: Message):
         self.clear_state(m.chat.id, m.from_user.id, True)
+        if "Greetings" not in self.cardinal.MAIN_CFG:
+            self.cardinal.MAIN_CFG["Greetings"] = {}
         self.cardinal.MAIN_CFG["Greetings"]["greetingsText"] = m.text
         logger.info(_("log_greeting_changed", m.from_user.username, m.from_user.id, m.text))
         self.cardinal.save_config(self.cardinal.MAIN_CFG, "configs/_main.cfg")
@@ -813,6 +819,8 @@ class TGBot:
         except:
             self.bot.reply_to(m, _("gl_error_try_again"))
             return
+        if "Greetings" not in self.cardinal.MAIN_CFG:
+            self.cardinal.MAIN_CFG["Greetings"] = {}
         self.cardinal.MAIN_CFG["Greetings"]["greetingsCooldown"] = str(cooldown)
         logger.info(_("log_greeting_cooldown_changed", m.from_user.username, m.from_user.id, m.text))
         self.cardinal.save_config(self.cardinal.MAIN_CFG, "configs/_main.cfg")
@@ -832,6 +840,8 @@ class TGBot:
 
     def edit_order_confirm_reply_text(self, m: Message):
         self.clear_state(m.chat.id, m.from_user.id, True)
+        if "OrderConfirm" not in self.cardinal.MAIN_CFG:
+            self.cardinal.MAIN_CFG["OrderConfirm"] = {}
         self.cardinal.MAIN_CFG["OrderConfirm"]["replyText"] = m.text
         logger.info(_("log_order_confirm_changed", m.from_user.username, m.from_user.id, m.text))
         self.cardinal.save_config(self.cardinal.MAIN_CFG, "configs/_main.cfg")
@@ -853,6 +863,8 @@ class TGBot:
     def edit_review_reply_text(self, m: Message):
         stars = self.get_state(m.chat.id, m.from_user.id)["data"]["stars"]
         self.clear_state(m.chat.id, m.from_user.id, True)
+        if "ReviewReply" not in self.cardinal.MAIN_CFG:
+            self.cardinal.MAIN_CFG["ReviewReply"] = {}
         self.cardinal.MAIN_CFG["ReviewReply"][f"star{stars}ReplyText"] = m.text
         logger.info(_("log_review_reply_changed", m.from_user.username, m.from_user.id, stars, m.text))
         self.cardinal.save_config(self.cardinal.MAIN_CFG, "configs/_main.cfg")
@@ -1018,6 +1030,10 @@ class TGBot:
         if section == "FunPay" and option == "oldMsgGetMode":
             self.cardinal.switch_msg_get_mode()
         else:
+            if section not in self.cardinal.MAIN_CFG:
+                self.cardinal.MAIN_CFG[section] = {}
+            if option not in self.cardinal.MAIN_CFG[section]:
+                self.cardinal.MAIN_CFG[section][option] = "0"
             self.cardinal.MAIN_CFG[section][option] = str(int(not int(self.cardinal.MAIN_CFG[section][option])))
             self.cardinal.save_config(self.cardinal.MAIN_CFG, "configs/_main.cfg")
 
@@ -1128,6 +1144,8 @@ class TGBot:
     def switch_lang(self, c: CallbackQuery):
         lang = c.data.split(":")[1]
         Localizer(lang)
+        if "Other" not in self.cardinal.MAIN_CFG:
+            self.cardinal.MAIN_CFG["Other"] = {}
         self.cardinal.MAIN_CFG["Other"]["language"] = lang
         self.cardinal.save_config(self.cardinal.MAIN_CFG, "configs/_main.cfg")
         if localizer.current_language == "en":
