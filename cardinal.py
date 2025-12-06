@@ -243,6 +243,9 @@ class Cardinal(object):
         
         handlers.register_handlers(self)
         
+        # Вызываем pre_init_handlers
+        self.run_handlers(self.pre_init_handlers, (self,))
+        
         if self.MAIN_CFG["Telegram"].get("enabled") == "1":
             self.__init_telegram()
             # Импортируем и регистрируем обработчики Telegram
@@ -252,6 +255,9 @@ class Cardinal(object):
                 for module in [auto_response_cp, auto_delivery_cp, config_loader_cp, templates_cp, plugins_cp,
                                file_uploader, authorized_users_cp, proxy_cp, default_cp]:
                     try:
+                        # Регистрируем обработчики из модуля
+                        self.add_handlers_from_plugin(module)
+                        # Вызываем init если есть
                         if hasattr(module, 'init'):
                             module.init(self)
                     except Exception as e:
@@ -433,7 +439,7 @@ class Cardinal(object):
         if not os.path.exists("plugins"):
             logger.warning(_("crd_no_plugins_folder"))
             return
-        plugins = [file for file in os.listdir("plugins") if file.endswith(".py")]
+        plugins = [file for file in os.listdir("plugins") if file.endswith(".py") and file != "__init__.py"]
         if not plugins:
             logger.info(_("crd_no_plugins"))
             return

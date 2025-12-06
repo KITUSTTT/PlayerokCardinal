@@ -46,17 +46,31 @@ def get_tags(current_tag: str) -> list[str] | None:
     try:
         page = 1
         json_response: list[dict] = []
-        while not any([el.get("name") == current_tag for el in json_response]):
+        max_pages = 10  # Ограничение на количество страниц
+        found_current = False
+        
+        while page <= max_pages:
             if page != 1:
                 time.sleep(1)
             response = requests.get(f"https://api.github.com/repos/KITUSTTT/PlayerokCardinal/tags?page={page}",
-                                    headers=HEADERS)
-            if not response.status_code == 200 or not response.json():
+                                    headers=HEADERS, timeout=10)
+            if not response.status_code == 200:
                 logger.debug(f"Update status code is {response.status_code}!")
-                return None
-            else:
-                json_response.extend(response.json())
-                page += 1
+                if page == 1:
+                    return None
+                break
+            page_data = response.json()
+            if not page_data:
+                break
+            json_response.extend(page_data)
+            if any([el.get("name") == current_tag for el in page_data]):
+                found_current = True
+                break
+            page += 1
+        
+        if not json_response:
+            return None
+        
         tags = [i.get("name") for i in json_response]
         return tags or None
     except:
@@ -96,17 +110,27 @@ def get_releases(from_tag: str) -> list[Release] | None:
     try:
         page = 1
         json_response: list[dict] = []
-        while not any([el.get("tag_name") == from_tag for el in json_response]):
+        max_pages = 10  # Ограничение на количество страниц
+        found_tag = False
+        
+        while page <= max_pages:
             if page != 1:
                 time.sleep(1)
             response = requests.get(f"https://api.github.com/repos/KITUSTTT/PlayerokCardinal/releases?page={page}",
-                                    headers=HEADERS)
-            if not response.status_code == 200 or not response.json():
+                                    headers=HEADERS, timeout=10)
+            if not response.status_code == 200:
                 logger.debug(f"Update status code is {response.status_code}!")
-                return None
-            else:
-                json_response.extend(response.json())
-                page += 1
+                if page == 1:
+                    return None
+                break
+            page_data = response.json()
+            if not page_data:
+                break
+            json_response.extend(page_data)
+            if any([el.get("tag_name") == from_tag for el in page_data]):
+                found_tag = True
+                break
+            page += 1
         result = []
         to_append = False
         for el in json_response[::-1]:
