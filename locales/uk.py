@@ -635,3 +635,17 @@ crd_handlers_registered = "Обробники з $YELLOW{}.py$RESET зареєс
 crd_handler_err = "Сталася помилка при виконанні обробника."
 crd_tg_au_err = "Не вдалося змінити повідомлення з інформацією про користувача: {}. Спробую без посилання."
 
+# Логи оновлень
+upd_checking_tags = "Перевірка тегів на GitHub..."
+upd_github_repo = "Репозиторій: {}"
+upd_github_error = "Помилка GitHub API, код: {}"
+upd_no_more_tags = "Більше тегів не знайдено."
+upd_found_current_tag = "Знайдено поточний тег: {}"
+upd_no_tags_found = "Теги не знайдені."
+upd_tags_found = "Знайдено тегів: {}"
+upd_exception = "Виняток при перевірці оновлень: {}"
+upd_checking_releases = "Перевірка релізів починаючи з тегу: {}"
+upd_no_more_releases = "Більше релізів не знайдено."
+upd_found_tag = "Знайдено тег: {}"
+upd_releases_found = "Знайдено релізів: {}"
+

@@ -166,22 +166,6 @@ class Cardinal(object):
             "BIND_TO_ITEM_SENT": self.item_sent_handlers,
             "BIND_TO_DEAL_CONFIRMED": self.deal_confirmed_handlers,
         }
-        
-        self.handler_bind_var_names = {
-            "BIND_TO_PRE_INIT": self.pre_init_handlers,
-            "BIND_TO_POST_INIT": self.post_init_handlers,
-            "BIND_TO_PRE_START": self.pre_start_handlers,
-            "BIND_TO_POST_START": self.post_start_handlers,
-            "BIND_TO_PRE_STOP": self.pre_stop_handlers,
-            "BIND_TO_POST_STOP": self.post_stop_handlers,
-            "BIND_TO_INIT_MESSAGE": self.chat_initialized_handlers,
-            "BIND_TO_NEW_MESSAGE": self.new_message_handlers,
-            "BIND_TO_NEW_ORDER": self.new_order_handlers,
-            "BIND_TO_NEW_DEAL": self.new_deal_handlers,
-            "BIND_TO_ITEM_PAID": self.item_paid_handlers,
-            "BIND_TO_ITEM_SENT": self.item_sent_handlers,
-            "BIND_TO_DEAL_CONFIRMED": self.deal_confirmed_handlers,
-        }
 
     def get_balance(self):
         """Получает баланс аккаунта"""

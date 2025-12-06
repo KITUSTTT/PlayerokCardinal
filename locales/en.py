@@ -633,3 +633,17 @@ crd_handlers_registered = "The handlers from $YELLOW{}.py$RESET are registered."
 crd_handler_err = "An error occurred in the handler's execution."
 crd_tg_au_err = "Failed to update the message with user information: {}. I will try without a link."
 
+# Update logs
+upd_checking_tags = "Checking tags on GitHub..."
+upd_github_repo = "Repository: {}"
+upd_github_error = "GitHub API error, code: {}"
+upd_no_more_tags = "No more tags found."
+upd_found_current_tag = "Found current tag: {}"
+upd_no_tags_found = "No tags found."
+upd_tags_found = "Found tags: {}"
+upd_exception = "Exception while checking updates: {}"
+upd_checking_releases = "Checking releases starting from tag: {}"
+upd_no_more_releases = "No more releases found."
+upd_found_tag = "Found tag: {}"
+upd_releases_found = "Found releases: {}"
+

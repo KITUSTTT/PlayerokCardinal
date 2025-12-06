@@ -41,7 +41,15 @@ def init_proxy_cp(crd: Cardinal, *args):
             pass
 
     def check_proxies():
-        if crd.MAIN_CFG["Proxy"].getboolean("enable") and crd.MAIN_CFG["Proxy"].getboolean("check"):
+        proxy_section = crd.MAIN_CFG.get("Proxy", {})
+        if isinstance(proxy_section, dict):
+            enable = proxy_section.get("enable", "0") == "1"
+            check = proxy_section.get("check", "0") == "1"
+        else:
+            enable = proxy_section.getboolean("enable")
+            check = proxy_section.getboolean("check")
+        
+        if enable and check:
             while True:
                 for proxy in crd.proxy_dict.values():
                     check_one_proxy(proxy)

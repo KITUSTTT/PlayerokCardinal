@@ -636,3 +636,17 @@ crd_handlers_registered = "Хэндлеры из $YELLOW{}.py$RESET зареги
 crd_handler_err = "Произошла ошибка при выполнении хэндлера."
 crd_tg_au_err = "Не удалось изменить сообщение с информацией о пользователе: {}. Попробую без ссылки."
 
+# Логи обновлений
+upd_checking_tags = "Проверка тегов на GitHub..."
+upd_github_repo = "Репозиторий: {}"
+upd_github_error = "Ошибка GitHub API, код: {}"
+upd_no_more_tags = "Больше тегов не найдено."
+upd_found_current_tag = "Найден текущий тег: {}"
+upd_no_tags_found = "Теги не найдены."
+upd_tags_found = "Найдено тегов: {}"
+upd_exception = "Исключение при проверке обновлений: {}"
+upd_checking_releases = "Проверка релизов начиная с тега: {}"
+upd_no_more_releases = "Больше релизов не найдено."
+upd_found_tag = "Найден тег: {}"
+upd_releases_found = "Найдено релизов: {}"
+

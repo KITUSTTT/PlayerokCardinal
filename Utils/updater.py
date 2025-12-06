@@ -44,36 +44,50 @@ def get_tags(current_tag: str) -> list[str] | None:
     :return: список тегов.
     """
     try:
+        logger.info(_("upd_checking_tags"))
         page = 1
         json_response: list[dict] = []
         max_pages = 10  # Ограничение на количество страниц
         found_current = False
         
+        repo_url = "https://api.github.com/repos/KITUSTTT/PlayerokCardinal/tags"
+        logger.info(_("upd_github_repo", repo_url))
+        
         while page <= max_pages:
             if page != 1:
                 time.sleep(1)
-            response = requests.get(f"https://api.github.com/repos/KITUSTTT/PlayerokCardinal/tags?page={page}",
-                                    headers=HEADERS, timeout=10)
+            
+            url = f"{repo_url}?page={page}"
+            logger.debug(f"Запрос к GitHub API: {url}")
+            response = requests.get(url, headers=HEADERS, timeout=10)
+            logger.info(f"Статус ответа GitHub API: {response.status_code}")
+            
             if not response.status_code == 200:
-                logger.debug(f"Update status code is {response.status_code}!")
+                logger.warning(_("upd_github_error", response.status_code))
                 if page == 1:
                     return None
                 break
             page_data = response.json()
             if not page_data:
+                logger.info(_("upd_no_more_tags"))
                 break
+            logger.debug(f"Получено тегов на странице {page}: {len(page_data)}")
             json_response.extend(page_data)
             if any([el.get("name") == current_tag for el in page_data]):
                 found_current = True
+                logger.info(_("upd_found_current_tag", current_tag))
                 break
             page += 1
         
         if not json_response:
+            logger.warning(_("upd_no_tags_found"))
             return None
         
         tags = [i.get("name") for i in json_response]
+        logger.info(_("upd_tags_found", len(tags)))
         return tags or None
-    except:
+    except Exception as e:
+        logger.error(_("upd_exception", str(e)))
         logger.debug("TRACEBACK", exc_info=True)
         return None
 
@@ -131,6 +145,10 @@ def get_releases(from_tag: str) -> list[Release] | None:
                 found_tag = True
                 break
             page += 1
+        if not json_response:
+            logger.warning(_("upd_no_tags_found"))
+            return None
+        
         result = []
         to_append = False
         for el in json_response[::-1]:
@@ -146,6 +164,11 @@ def get_releases(from_tag: str) -> list[Release] | None:
                 result.append(release)
                 if not to_append:
                     break
+        
+        if result:
+            logger.info(_("upd_releases_found", len(result)))
+        else:
+            logger.warning(_("upd_no_tags_found"))
         return result if result else None
     except:
         logger.debug("TRACEBACK", exc_info=True)
