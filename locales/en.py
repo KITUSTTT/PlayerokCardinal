@@ -420,7 +420,7 @@ pl_new = "Send me a plugin.\n\n<b>⚠️ ATTENTION! Downloading plugins from que
 
 au_user_settings = "Settings for user {}"
 adv_fpc = "😎 FunPay Cardinal - the best bot for FunPay"
-adv_description = """🐦 FunPay Cardinal v{}🐦
+adv_description = """🐦 Playerok Cardinal v{}🐦
 
 🤖 Automatic product delivery
 🚀 Auto-raise of lots

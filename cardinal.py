@@ -199,7 +199,7 @@ class Cardinal(object):
 
     @property
     def block_tg_login(self) -> bool:
-        return self.MAIN_CFG["Telegram"].getboolean("blockLogin")
+        return self.MAIN_CFG["Telegram"].get("blockLogin", "0") == "1"
 
     def send_message(self, chat_id: int, text: str, chat_name: str = ""):
         """Отправляет сообщение в чат"""

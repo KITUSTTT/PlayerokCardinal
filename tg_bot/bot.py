@@ -1226,19 +1226,19 @@ class TGBot:
 
         name = self.bot.get_me().full_name
         limit = 64
-        add_to_name = ["FunPay Bot | Бот ФанПей", "FunPay Bot", "FunPayBot", "FunPay"]
+        add_to_name = ["Playerok Bot | Бот Плейерок", "Playerok Bot", "PlayerokBot", "Playerok"]
         new_name = name
         if "vertex" in new_name.lower():
             new_name = ""
         new_name = new_name.split("ㅤ")[0].strip()
-        if "funpay" not in new_name.lower():
+        if "playerok" not in new_name.lower():
             for m_name in add_to_name:
                 if len(new_name) + 2 + len(m_name) <= limit:
                     new_name = f"{(new_name + ' ').ljust(limit - len(m_name) - 1, 'ㅤ')} {m_name}"
                     break
             if new_name != name:
                 self.bot.set_my_name(new_name)
-        sh_text = "🛠️ github.com/sidor0912/FunPayCardinal 💰 @sidor_donate 👨‍💻 @sidor0912 🧩 @fpc_plugins 🔄 @fpc_updates 💬 @funpay_cardinal"
+        sh_text = "🛠️ Playerok Cardinal - Бот для автоматизации работы с Playerok"
         res = self.bot.get_my_short_description().short_description
         if res != sh_text:
             self.bot.set_my_short_description(sh_text)
@@ -1250,6 +1250,8 @@ class TGBot:
 
     def init(self):
         self.__register_handlers()
+        self.setup_commands()
+        self.edit_bot()
         logger.info(_("log_tg_initialized"))
 
     def run(self):
