@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 from threading import Thread
 
 if TYPE_CHECKING:
@@ -13,12 +13,50 @@ import handlers
 import logging
 import time
 import sys
+import os
+import importlib.util
+from types import ModuleType
+from uuid import UUID
 
 logger = logging.getLogger("POC")
 
 def get_cardinal() -> None | Cardinal:
     if hasattr(Cardinal, "instance"):
         return getattr(Cardinal, "instance")
+
+
+class PluginData:
+    """
+    Класс, описывающий плагин.
+    """
+
+    def __init__(self, name: str, version: str, desc: str, credentials: str, uuid: str,
+                 path: str, plugin: ModuleType, settings_page: bool, delete_handler: Callable | None, enabled: bool):
+        """
+        :param name: название плагина.
+        :param version: версия плагина.
+        :param desc: описание плагина.
+        :param credentials: авторы плагина.
+        :param uuid: UUID плагина.
+        :param path: путь до плагина.
+        :param plugin: экземпляр плагина как модуля.
+        :param settings_page: есть ли страница настроек у плагина.
+        :param delete_handler: хэндлер, привязанный к удалению плагина.
+        :param enabled: включен ли плагин.
+        """
+        self.name = name
+        self.version = version
+        self.description = desc
+        self.credits = credentials
+        self.uuid = uuid
+
+        self.path = path
+        self.plugin = plugin
+        self.settings_page = settings_page
+        self.commands = {}
+        self.delete_handler = delete_handler
+        self.enabled = enabled
+
 
 class Cardinal(object):
     def __new__(cls, *args, **kwargs):
@@ -107,6 +145,27 @@ class Cardinal(object):
         self.deal_confirmed_handlers = []
         
         self.balance = None
+        
+        # Плагины
+        self.plugins: dict[str, PluginData] = {}
+        self.disabled_plugins = cardinal_tools.load_disabled_plugins()
+        
+        # Хэндлеры для плагинов
+        self.handler_bind_var_names = {
+            "BIND_TO_PRE_INIT": self.pre_init_handlers,
+            "BIND_TO_POST_INIT": self.post_init_handlers,
+            "BIND_TO_PRE_START": self.pre_start_handlers,
+            "BIND_TO_POST_START": self.post_start_handlers,
+            "BIND_TO_PRE_STOP": self.pre_stop_handlers,
+            "BIND_TO_POST_STOP": self.post_stop_handlers,
+            "BIND_TO_NEW_MESSAGE": self.new_message_handlers,
+            "BIND_TO_NEW_ORDER": self.new_order_handlers,
+            "BIND_TO_CHAT_INITIALIZED": self.chat_initialized_handlers,
+            "BIND_TO_NEW_DEAL": self.new_deal_handlers,
+            "BIND_TO_ITEM_PAID": self.item_paid_handlers,
+            "BIND_TO_ITEM_SENT": self.item_sent_handlers,
+            "BIND_TO_DEAL_CONFIRMED": self.deal_confirmed_handlers,
+        }
         
         self.handler_bind_var_names = {
             "BIND_TO_PRE_INIT": self.pre_init_handlers,
@@ -205,6 +264,10 @@ class Cardinal(object):
         self.__init_account()
         self.listener = EventListener(self.account)
         
+        # Загружаем плагины
+        self.load_plugins()
+        self.add_handlers()
+        
         logger.info("$GREENCardinal инициализирован успешно!$RESET")
         
         # Вызываем post_init_handlers с задержкой, чтобы бот успел отправить bot_started
@@ -218,7 +281,9 @@ class Cardinal(object):
         """Вызывает список обработчиков с указанными аргументами"""
         for handler in handlers_list:
             try:
-                handler(*args)
+                plugin_uuid = getattr(handler, "plugin_uuid", None)
+                if plugin_uuid is None or (plugin_uuid in self.plugins and self.plugins[plugin_uuid].enabled):
+                    handler(*args)
             except Exception as e:
                 logger.error(f"$REDОшибка в обработчике: $YELLOW{e}$RESET")
                 logger.debug("TRACEBACK", exc_info=True)
@@ -300,3 +365,159 @@ class Cardinal(object):
             logger.error(f"$REDОшибка при отправке сообщения: $YELLOW{e}$RESET")
             logger.debug("TRACEBACK", exc_info=True)
             return False
+    
+    @staticmethod
+    def is_plugin(file: str) -> bool:
+        """
+        Есть ли "noplug" в начале файла плагина?
+
+        :param file: файл плагина.
+        """
+        with open(f"plugins/{file}", "r", encoding="utf-8") as f:
+            line = f.readline()
+        if line.startswith("#"):
+            line = line.replace("\n", "")
+            args = line.split()
+            if "noplug" in args:
+                return False
+        return True
+
+    @staticmethod
+    def load_plugin(from_file: str) -> tuple:
+        """
+        Создает модуль из переданного файла-плагина и получает необходимые поля для PluginData.
+        :param from_file: путь до файла-плагина.
+
+        :return: плагин, поля плагина.
+        """
+        spec = importlib.util.spec_from_file_location(f"plugins.{from_file[:-3]}", f"plugins/{from_file}")
+        plugin = importlib.util.module_from_spec(spec)
+        sys.modules[f"plugins.{from_file[:-3]}"] = plugin
+        spec.loader.exec_module(plugin)
+
+        fields = ["NAME", "VERSION", "DESCRIPTION", "CREDITS", "SETTINGS_PAGE", "UUID", "BIND_TO_DELETE"]
+        result = {}
+
+        for i in fields:
+            try:
+                value = getattr(plugin, i)
+            except AttributeError:
+                import Utils.exceptions
+                raise Utils.exceptions.FieldNotExistsError(i, from_file)
+            result[i] = value
+        return plugin, result
+
+    @staticmethod
+    def is_uuid_valid(uuid: str) -> bool:
+        """
+        Проверяет, валиден ли UUID.
+
+        :param uuid: UUID для проверки.
+
+        :return: True, если UUID валиден, иначе - False.
+        """
+        try:
+            UUID(uuid)
+            return True
+        except:
+            return False
+
+    def load_plugins(self):
+        """
+        Импортирует все плагины из папки plugins.
+        """
+        from locales.localizer import Localizer
+        localizer = Localizer()
+        _ = localizer.translate
+        
+        if not os.path.exists("plugins"):
+            logger.warning(_("crd_no_plugins_folder"))
+            return
+        plugins = [file for file in os.listdir("plugins") if file.endswith(".py")]
+        if not plugins:
+            logger.info(_("crd_no_plugins"))
+            return
+
+        sys.path.append("plugins")
+        for file in plugins:
+            try:
+                if not self.is_plugin(file):
+                    continue
+                plugin, data = self.load_plugin(file)
+            except Exception as e:
+                logger.error(_("crd_plugin_load_err", file))
+                logger.debug("TRACEBACK", exc_info=True)
+                continue
+
+            if not self.is_uuid_valid(data["UUID"]):
+                logger.error(_("crd_invalid_uuid", file))
+                continue
+
+            if data["UUID"] in self.plugins:
+                logger.error(_("crd_uuid_already_registered", data['UUID'], data['NAME']))
+                continue
+
+            plugin_data = PluginData(data["NAME"], data["VERSION"], data["DESCRIPTION"], data["CREDITS"], data["UUID"],
+                                     f"plugins/{file}", plugin, data["SETTINGS_PAGE"], data["BIND_TO_DELETE"],
+                                     False if data["UUID"] in self.disabled_plugins else True)
+
+            self.plugins[data["UUID"]] = plugin_data
+
+    def add_handlers_from_plugin(self, plugin, uuid: str | None = None):
+        """
+        Добавляет хэндлеры из плагина + присваивает каждому хэндлеру UUID плагина.
+
+        :param plugin: модуль (плагин).
+        :param uuid: UUID плагина (None для встроенных хэндлеров).
+        """
+        for name in self.handler_bind_var_names:
+            try:
+                functions = getattr(plugin, name)
+            except AttributeError:
+                continue
+            for func in functions:
+                func.plugin_uuid = uuid
+            self.handler_bind_var_names[name].extend(functions)
+        from locales.localizer import Localizer
+        localizer = Localizer()
+        _ = localizer.translate
+        logger.info(_("crd_handlers_registered", plugin.__name__))
+
+    def add_handlers(self):
+        """
+        Регистрирует хэндлеры из всех плагинов.
+        """
+        for i in self.plugins:
+            plugin = self.plugins[i].plugin
+            self.add_handlers_from_plugin(plugin, i)
+
+    def toggle_plugin(self, uuid):
+        """
+        Активирует / деактивирует плагин.
+        :param uuid: UUID плагина.
+        """
+        self.plugins[uuid].enabled = not self.plugins[uuid].enabled
+        if self.plugins[uuid].enabled and uuid in self.disabled_plugins:
+            self.disabled_plugins.remove(uuid)
+        elif not self.plugins[uuid].enabled and uuid not in self.disabled_plugins:
+            self.disabled_plugins.append(uuid)
+        cardinal_tools.cache_disabled_plugins(self.disabled_plugins)
+
+    def add_telegram_commands(self, uuid: str, commands: list[tuple[str, str, bool]]):
+        """
+        Добавляет команды в список команд плагина.
+        [
+            ("команда1", "описание команды", Добавлять ли в меню команд (True / False)),
+            ("команда2", "описание команды", Добавлять ли в меню команд (True / False))
+        ]
+
+        :param uuid: UUID плагина.
+        :param commands: список команд (без "/")
+        """
+        if uuid not in self.plugins:
+            return
+
+        for i in commands:
+            self.plugins[uuid].commands[i[0]] = i[1]
+            if i[2] and self.telegram:
+                self.telegram.add_command_to_menu(i[0], i[1])

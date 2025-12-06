@@ -49,7 +49,7 @@ def get_tags(current_tag: str) -> list[str] | None:
         while not any([el.get("name") == current_tag for el in json_response]):
             if page != 1:
                 time.sleep(1)
-            response = requests.get(f"https://api.github.com/repos/sidor0912/FunPayCardinal/tags?page={page}",
+            response = requests.get(f"https://api.github.com/repos/KITUSTTT/PlayerokCardinal/tags?page={page}",
                                     headers=HEADERS)
             if not response.status_code == 200 or not response.json():
                 logger.debug(f"Update status code is {response.status_code}!")
@@ -99,7 +99,7 @@ def get_releases(from_tag: str) -> list[Release] | None:
         while not any([el.get("tag_name") == from_tag for el in json_response]):
             if page != 1:
                 time.sleep(1)
-            response = requests.get(f"https://api.github.com/repos/sidor0912/FunPayCardinal/releases?page={page}",
+            response = requests.get(f"https://api.github.com/repos/KITUSTTT/PlayerokCardinal/releases?page={page}",
                                     headers=HEADERS)
             if not response.status_code == 200 or not response.json():
                 logger.debug(f"Update status code is {response.status_code}!")
