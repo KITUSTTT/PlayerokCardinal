@@ -197,6 +197,10 @@ class Cardinal(object):
             logger.debug("TRACEBACK", exc_info=True)
             self.running = False
 
+    @property
+    def block_tg_login(self) -> bool:
+        return self.MAIN_CFG["Telegram"].getboolean("blockLogin")
+
     def send_message(self, chat_id: int, text: str, chat_name: str = ""):
         """Отправляет сообщение в чат"""
         try:
