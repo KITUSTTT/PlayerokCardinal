@@ -86,6 +86,14 @@ class Cardinal(object):
         self.autodelivery_enabled = self.MAIN_CFG["Playerok"].get("autoDelivery") == "1"
         self.autorestore_enabled = self.MAIN_CFG["Playerok"].get("autoRestore") == "1"
         
+        # Хэндлеры
+        self.pre_init_handlers = []
+        self.post_init_handlers = []
+        self.pre_start_handlers = []
+        self.post_start_handlers = []
+        self.pre_stop_handlers = []
+        self.post_stop_handlers = []
+        
         self.new_message_handlers = []
         self.new_order_handlers = []
         self.chat_initialized_handlers = []
@@ -95,6 +103,22 @@ class Cardinal(object):
         self.deal_confirmed_handlers = []
         
         self.balance = None
+        
+        self.handler_bind_var_names = {
+            "BIND_TO_PRE_INIT": self.pre_init_handlers,
+            "BIND_TO_POST_INIT": self.post_init_handlers,
+            "BIND_TO_PRE_START": self.pre_start_handlers,
+            "BIND_TO_POST_START": self.post_start_handlers,
+            "BIND_TO_PRE_STOP": self.pre_stop_handlers,
+            "BIND_TO_POST_STOP": self.post_stop_handlers,
+            "BIND_TO_INIT_MESSAGE": self.chat_initialized_handlers,
+            "BIND_TO_NEW_MESSAGE": self.new_message_handlers,
+            "BIND_TO_NEW_ORDER": self.new_order_handlers,
+            "BIND_TO_NEW_DEAL": self.new_deal_handlers,
+            "BIND_TO_ITEM_PAID": self.item_paid_handlers,
+            "BIND_TO_ITEM_SENT": self.item_sent_handlers,
+            "BIND_TO_DEAL_CONFIRMED": self.deal_confirmed_handlers,
+        }
 
     def get_balance(self):
         """Получает баланс аккаунта"""
@@ -126,8 +150,10 @@ class Cardinal(object):
             try:
                 profile = self.account.get()
                 self.balance = self.get_balance()
-                logger.info(f"$GREENУспешно авторизован как: $YELLOW{profile.username}$RESET")
-                cardinal_tools.set_console_title(f"Playerok Cardinal - {profile.username}")
+                greeting_text = cardinal_tools.create_greeting_text(self)
+                cardinal_tools.set_console_title(f"Playerok Cardinal - {profile.username} ({profile.id})")
+                for line in greeting_text.split("\n"):
+                    logger.info(line)
                 break
             except TimeoutError:
                 logger.error(_("crd_acc_get_timeout_err"))
@@ -175,8 +201,20 @@ class Cardinal(object):
         self.__init_account()
         self.listener = EventListener(self.account)
         
+        # Вызываем post_init_handlers
+        self.run_handlers(self.post_init_handlers, (self,))
+        
         logger.info("$GREENCardinal инициализирован успешно!$RESET")
         return self
+    
+    def run_handlers(self, handlers_list: list, args: tuple):
+        """Вызывает список обработчиков с указанными аргументами"""
+        for handler in handlers_list:
+            try:
+                handler(*args)
+            except Exception as e:
+                logger.error(f"$REDОшибка в обработчике: $YELLOW{e}$RESET")
+                logger.debug("TRACEBACK", exc_info=True)
 
     def process_events(self):
         """Обрабатывает события от EventListener"""

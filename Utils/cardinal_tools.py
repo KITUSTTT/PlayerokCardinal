@@ -196,7 +196,7 @@ def load_old_users(greetings_cooldown: float) -> dict[int, float]:
     return users
 
 
-def create_greeting_text(cardinal: Cardinal):
+def create_greeting_text(cardinal: Cardinal) -> str:
     """
     Генерирует приветствие для вывода в консоль после загрузки данных о пользователе.
     """
@@ -212,11 +212,24 @@ def create_greeting_text(cardinal: Cardinal):
     else:
         greetings = "Добрый вечер"
 
+    # Получаем активные сделки
+    active_sales = 0
+    try:
+        if hasattr(account, 'profile') and account.profile and hasattr(account.profile, 'stats'):
+            if hasattr(account.profile.stats, 'deals') and account.profile.stats.deals:
+                if hasattr(account.profile.stats.deals, 'incoming') and account.profile.stats.deals.incoming:
+                    active_sales = getattr(account.profile.stats.deals.incoming, 'total', 0)
+    except:
+        pass
+    
+    # Форматируем баланс (в PlayerokAPI баланс в копейках)
+    balance_rub = balance.value / 100 if balance.value else 0
+    
     lines = [
         f"* {greetings}, $CYAN{account.username}.",
         f"* Ваш ID: $YELLOW{account.id}.",
-        f"* Ваш текущий баланс: $CYAN{balance.total_rub} RUB $RESET| $MAGENTA{balance.total_usd} USD $RESET| $YELLOW{balance.total_eur} EUR",
-        f"* Текущие незавершенные сделки: $YELLOW{account.active_sales}.",
+        f"* Ваш текущий баланс: $CYAN{balance_rub:.2f} RUB",
+        f"* Текущие незавершенные сделки: $YELLOW{active_sales}.",
         f"* Удачной торговли!"
     ]
 

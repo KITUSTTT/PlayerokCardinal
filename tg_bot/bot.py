@@ -1057,7 +1057,9 @@ class TGBot:
         """
         Открывает выбранную категорию настроек.
         """
-        #
+        if c.from_user.id not in self.authorized_users:
+            self.ignore_unauthorized_users(c)
+            return
         section = c.data.split(":")[1]
         sections = {
             "lang": (_("desc_lang"), kb.language_settings, [self.cardinal]),
