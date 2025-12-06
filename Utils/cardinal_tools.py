@@ -222,7 +222,7 @@ def create_greeting_text(cardinal: Cardinal) -> str:
     except:
         pass
     
-    # Форматируем баланс (в PlayerokAPI баланс в копейках)
+    # Форматируем баланс (в PlayerokAPI баланс приходит в копейках, нужно делить на 100)
     balance_rub = balance.value / 100 if balance.value else 0
     
     lines = [

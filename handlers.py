@@ -132,8 +132,11 @@ def send_bot_started_notification_handler(c: Cardinal, *args):
     except:
         pass
     
-    # Форматируем баланс
-    balance_rub = balance.value / 100 if balance.value else 0
+    # Форматируем баланс (в PlayerokAPI баланс приходит в копейках, нужно делить на 100)
+    if balance.value:
+        balance_rub = balance.value / 100
+    else:
+        balance_rub = 0
     balance_usd = 0.0  # PlayerokAPI не возвращает USD напрямую
     balance_eur = 0.0  # PlayerokAPI не возвращает EUR напрямую
     

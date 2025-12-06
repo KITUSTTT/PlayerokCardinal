@@ -205,10 +205,13 @@ class Cardinal(object):
         self.__init_account()
         self.listener = EventListener(self.account)
         
-        # Вызываем post_init_handlers
+        logger.info("$GREENCardinal инициализирован успешно!$RESET")
+        
+        # Вызываем post_init_handlers с небольшой задержкой, чтобы бот успел отправить bot_started
+        import time
+        time.sleep(0.5)  # Даем время боту отправить сообщение bot_started
         self.run_handlers(self.post_init_handlers, (self,))
         
-        logger.info("$GREENCardinal инициализирован успешно!$RESET")
         return self
     
     def run_handlers(self, handlers_list: list, args: tuple):

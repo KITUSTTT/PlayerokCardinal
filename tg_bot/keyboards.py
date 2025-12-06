@@ -65,7 +65,7 @@ def power_off(instance_id: int, state: int) -> K:
 
 
 def language_settings(c: Cardinal) -> K:
-    lang = c.MAIN_CFG["Other"]["language"]
+    lang = c.MAIN_CFG.get("Other", {}).get("language", "ru")
     langs = {
         "uk": "🇺🇦", "en": "🇺🇸", "ru": "🇷🇺"
     }
@@ -90,10 +90,13 @@ def main_settings(c: Cardinal) -> K:
 
     :return: объект клавиатуры основных переключателей.
     """
-    p = f"{CBT.SWITCH}:FunPay"
+    p = f"{CBT.SWITCH}:Playerok"
 
     def l(s):
-        return '🟢' if c.MAIN_CFG["FunPay"].getboolean(s) else '🔴'
+        section = c.MAIN_CFG.get("Playerok", {})
+        if isinstance(section, dict):
+            return '🟢' if section.get(s, "0") == "1" else '🔴'
+        return '🟢' if section.getboolean(s) else '🔴'
 
     kb = K() \
         .row(B(_("gs_autoraise", l('autoRaise')), None, f"{p}:autoRaise"),
@@ -121,7 +124,10 @@ def new_message_view_settings(c: Cardinal) -> K:
     p = f"{CBT.SWITCH}:NewMessageView"
 
     def l(s):
-        return '🟢' if c.MAIN_CFG["NewMessageView"].getboolean(s) else '🔴'
+        section = c.MAIN_CFG.get("NewMessageView", {})
+        if isinstance(section, dict):
+            return '🟢' if section.get(s, "0") == "1" else '🔴'
+        return '🟢' if section.getboolean(s) else '🔴'
 
     kb = K() \
         .add(B(_("mv_incl_my_msg", l("includeMyMessages")), None, f"{p}:includeMyMessages")) \
@@ -146,11 +152,15 @@ def greeting_settings(c: Cardinal):
     p = f"{CBT.SWITCH}:Greetings"
 
     def l(s):
-        return '🟢' if c.MAIN_CFG["Greetings"].getboolean(s) else '🔴'
+        section = c.MAIN_CFG.get("Greetings", {})
+        if isinstance(section, dict):
+            return '🟢' if section.get(s, "0") == "1" else '🔴'
+        return '🟢' if section.getboolean(s) else '🔴'
 
-    cd = float(c.MAIN_CFG["Greetings"]["greetingsCooldown"])
+    greetings_section = c.MAIN_CFG.get("Greetings", {})
+    cd = float(greetings_section.get("greetingsCooldown", "0"))
     cd = int(cd) if int(cd) == cd else cd
-    only_new_chats = c.MAIN_CFG["Greetings"].getboolean("onlyNewChats")
+    only_new_chats = greetings_section.get("onlyNewChats", "0") == "1" if isinstance(greetings_section, dict) else greetings_section.getboolean("onlyNewChats")
     kb = K() \
         .add(B(_("gr_greetings", l("sendGreetings")), None, f"{p}:sendGreetings")) \
         .add(B(_("gr_ignore_sys_msgs", l("ignoreSystemMessages")), None, f"{p}:ignoreSystemMessages")) \
@@ -172,9 +182,9 @@ def order_confirm_reply_settings(c: Cardinal):
     :return: объект клавиатуры настроек ответа на подтверждение заказа.
     """
     kb = K() \
-        .add(B(_("oc_send_reply", bool_to_text(int(c.MAIN_CFG['OrderConfirm']['sendReply']))),
+        .add(B(_("oc_send_reply", bool_to_text(int(c.MAIN_CFG.get('OrderConfirm', {}).get('sendReply', '0')))),
                None, f"{CBT.SWITCH}:OrderConfirm:sendReply")) \
-        .add(B(_("oc_watermark", bool_to_text(int(c.MAIN_CFG['OrderConfirm']['watermark']))),
+        .add(B(_("oc_watermark", bool_to_text(int(c.MAIN_CFG.get('OrderConfirm', {}).get('watermark', '0')))),
                None, f"{CBT.SWITCH}:OrderConfirm:watermark")) \
         .add(B(_("oc_edit_message"), None, CBT.EDIT_ORDER_CONFIRM_REPLY_TEXT)) \
         .add(B(_("gl_back"), None, CBT.MAIN2))
@@ -194,7 +204,10 @@ def authorized_users(c: Cardinal, offset: int):
     p = f"{CBT.SWITCH}:Telegram"
 
     def l(s):
-        return '🟢' if c.MAIN_CFG["Telegram"].getboolean(s) else '🔴'
+        section = c.MAIN_CFG.get("Telegram", {})
+        if isinstance(section, dict):
+            return '🟢' if section.get(s, "0") == "1" else '🔴'
+        return '🟢' if section.getboolean(s) else '🔴'
 
     kb.add(B(_("tg_block_login", l("blockLogin")), None, f"{p}:blockLogin:{offset}"))
     users = list(c.telegram.authorized_users.keys())[offset: offset + MENU_CFG.AUTHORIZED_USERS_BTNS_AMOUNT]
@@ -338,7 +351,10 @@ def blacklist_settings(c: Cardinal) -> K:
     p = f"{CBT.SWITCH}:BlockList"
 
     def l(s):
-        return '🟢' if c.MAIN_CFG["BlockList"].getboolean(s) else '🔴'
+        section = c.MAIN_CFG.get("BlockList", {})
+        if isinstance(section, dict):
+            return '🟢' if section.get(s, "0") == "1" else '🔴'
+        return '🟢' if section.getboolean(s) else '🔴'
 
     kb = K() \
         .add(B(_("bl_autodelivery", l("blockDelivery")), None, f"{p}:blockDelivery")) \
@@ -532,11 +548,17 @@ def edit_lot(c: Cardinal, lot_number: int, offset: int) -> K:
         kb.row(B(_("ea_link_goods_file"), None, f"{CBT.BIND_PRODUCTS_FILE}:{lot_number}:{offset}"),
                B(_("gf_add_goods"), None, f"{CBT.ADD_PRODUCTS_TO_FILE}:{file_number}:{lot_number}:{offset}:1"))
 
+    section = c.MAIN_CFG.get("Playerok", {})
+    def get_bool(key, default="0"):
+        if isinstance(section, dict):
+            return section.get(key, default) == "1"
+        return section.getboolean(key) if hasattr(section, 'getboolean') else False
+    
     p = {
-        "ad": (c.MAIN_CFG["FunPay"].getboolean("autoDelivery"), "disable"),
-        "md": (c.MAIN_CFG["FunPay"].getboolean("multiDelivery"), "disableMultiDelivery"),
-        "ares": (c.MAIN_CFG["FunPay"].getboolean("autoRestore"), "disableAutoRestore"),
-        "adis": (c.MAIN_CFG["FunPay"].getboolean("autoDisable"), "disableAutoDisable"),
+        "ad": (get_bool("autoDelivery"), "disable"),
+        "md": (get_bool("multiDelivery"), "disableMultiDelivery"),
+        "ares": (get_bool("autoRestore"), "disableAutoRestore"),
+        "adis": (get_bool("autoDisable"), "disableAutoDisable"),
     }
     info, sl, dis = f"{lot_number}:{offset}", "switch_lot", CBT.PARAM_DISABLED
 
