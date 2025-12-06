@@ -35,14 +35,19 @@ def load_blacklist() -> list[str]:
         return blacklist
 
 def check_proxy(proxy: dict) -> bool:
-    logger.info("Проверяю прокси...")
+    from locales.localizer import Localizer
+    localizer = Localizer()
+    _ = localizer.translate
+    
+    logger.info(_("crd_checking_proxy"))
     try:
-        response = requests.get("https://api.ipify.org/", proxies=proxy, timeout=10)
+        response = requests.get("https://api.ipify.org?format=json", proxies=proxy, timeout=10)
+        ip_address = response.json().get("ip", response.content.decode())
     except:
-        logger.error("Не удалось подключиться к прокси.")
+        logger.error(_("crd_proxy_err"))
         logger.debug("TRACEBACK", exc_info=True)
         return False
-    logger.info(f"Прокси работает. IP: {response.content.decode()}")
+    logger.info(_("crd_proxy_success", ip_address))
     return True
 
 def validate_proxy(proxy: str):
@@ -70,4 +75,34 @@ def set_console_title(title: str):
     else:
         sys.stdout.write(f"\x1b]2;{title}\x07")
 
+def cache_proxy_dict(proxy_dict: dict[int, str]) -> None:
+    """
+    Кэширует список прокси.
+    
+    :param proxy_dict: список прокси.
+    """
+    if not os.path.exists("storage/cache"):
+        os.makedirs("storage/cache")
+    
+    with open("storage/cache/proxy_dict.json", "w", encoding="utf-8") as f:
+        f.write(json.dumps(proxy_dict, indent=4))
+
+def load_proxy_dict() -> dict[int, str]:
+    """
+    Загружает список прокси.
+    
+    :return: список прокси.
+    """
+    if not os.path.exists("storage/cache/proxy_dict.json"):
+        return {}
+    
+    with open("storage/cache/proxy_dict.json", "r", encoding="utf-8") as f:
+        proxy = f.read()
+        
+        try:
+            proxy = json.loads(proxy)
+            proxy = {int(k): v for k, v in proxy.items()}
+        except json.decoder.JSONDecodeError:
+            return {}
+        return proxy
 

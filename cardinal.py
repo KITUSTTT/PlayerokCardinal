@@ -41,7 +41,11 @@ class Cardinal(object):
         self.proxy = {}
         if self.MAIN_CFG["Proxy"].get("enable") == "1":
             if self.MAIN_CFG["Proxy"]["ip"] and self.MAIN_CFG["Proxy"]["port"].isnumeric():
-                logger.info("Обнаружен прокси...")
+                from locales.localizer import Localizer
+                localizer = Localizer()
+                _ = localizer.translate
+                logger.info(_("crd_proxy_detected"))
+                logger.info(_("crd_checking_proxy"))
                 ip, port = self.MAIN_CFG["Proxy"]["ip"], self.MAIN_CFG["Proxy"]["port"]
                 login, password = self.MAIN_CFG["Proxy"]["login"], self.MAIN_CFG["Proxy"]["password"]
                 proxy_str = f"{f'{login}:{password}@' if login and password else ''}{ip}:{port}"
@@ -50,8 +54,18 @@ class Cardinal(object):
                     "https": f"http://{proxy_str}"
                 }
                 
-                if self.MAIN_CFG["Proxy"].get("check") == "1" and not cardinal_tools.check_proxy(self.proxy):
-                    sys.exit()
+                if self.MAIN_CFG["Proxy"].get("check") == "1":
+                    if not cardinal_tools.check_proxy(self.proxy):
+                        logger.error(_("crd_proxy_err"))
+                        sys.exit()
+                    else:
+                        import requests
+                        try:
+                            response = requests.get("https://api.ipify.org?format=json", proxies=self.proxy, timeout=10)
+                            ip_address = response.json().get("ip", "unknown")
+                            logger.info(_("crd_proxy_success", ip_address))
+                        except:
+                            pass
 
         self.account = PlayerokAPI.Account(
             token=self.MAIN_CFG["Playerok"]["token"],
@@ -81,16 +95,23 @@ class Cardinal(object):
 
     def __init_account(self):
         """Инициализирует аккаунт"""
+        from locales.localizer import Localizer
+        localizer = Localizer()
+        _ = localizer.translate
+        
         while True:
             try:
                 profile = self.account.get()
-                logger.info(f"Успешно авторизован как: {profile.username}")
+                logger.info(f"$GREENУспешно авторизован как: $YELLOW{profile.username}$RESET")
                 cardinal_tools.set_console_title(f"Playerok Cardinal - {profile.username}")
                 break
+            except TimeoutError:
+                logger.error(_("crd_acc_get_timeout_err"))
             except Exception as e:
-                logger.error(f"Ошибка при авторизации: {e}")
-                logger.warning("Повторная попытка через 2 секунды...")
-                time.sleep(2)
+                logger.error(f"$REDОшибка при авторизации: $YELLOW{e}$RESET")
+                logger.debug("TRACEBACK", exc_info=True)
+            logger.warning(_("crd_try_again_in_n_secs", 2))
+            time.sleep(2)
 
     def __init_telegram(self):
         """Инициализирует Telegram бота"""
@@ -101,7 +122,11 @@ class Cardinal(object):
             Thread(target=self.telegram.run, daemon=True).start()
 
     def init(self):
-        logger.info("Инициализация Cardinal...")
+        from locales.localizer import Localizer
+        localizer = Localizer()
+        _ = localizer.translate
+        
+        logger.info("$CYANИнициализация Cardinal...$RESET")
         
         handlers.register_handlers(self)
         
@@ -117,14 +142,16 @@ class Cardinal(object):
                         if hasattr(module, 'init'):
                             module.init(self)
                     except Exception as e:
-                        logger.error(f"Ошибка при инициализации модуля {module.__name__}: {e}")
+                        logger.error(f"$REDОшибка при инициализации модуля $YELLOW{module.__name__}$RESET: $YELLOW{e}$RESET")
+                        logger.debug("TRACEBACK", exc_info=True)
             except Exception as e:
-                logger.warning(f"Ошибка при загрузке Telegram модулей: {e}")
+                logger.warning(f"$YELLOWОшибка при загрузке Telegram модулей: $YELLOW{e}$RESET")
+                logger.debug("TRACEBACK", exc_info=True)
         
         self.__init_account()
         self.listener = EventListener(self.account)
         
-        logger.info("Cardinal инициализирован успешно!")
+        logger.info("$GREENCardinal инициализирован успешно!$RESET")
         return self
 
     def process_events(self):
@@ -151,10 +178,11 @@ class Cardinal(object):
                     try:
                         handler(self, event)
                     except Exception as e:
-                        logger.error(f"Ошибка в обработчике события {event_type}: {e}")
+                        logger.error(f"$REDОшибка в обработчике события $YELLOW{event_type}$RESET: $YELLOW{e}$RESET")
+                        logger.debug("TRACEBACK", exc_info=True)
 
     def run(self):
-        logger.info("Запуск Cardinal...")
+        logger.info("$CYANЗапуск Cardinal...$RESET")
         self.run_id += 1
         self.running = True
         self.start_time = int(time.time())
@@ -162,18 +190,21 @@ class Cardinal(object):
         try:
             self.process_events()
         except KeyboardInterrupt:
-            logger.info("Получен сигнал остановки...")
+            logger.info("$YELLOWПолучен сигнал остановки...$RESET")
             self.running = False
         except Exception as e:
-            logger.error(f"Ошибка при обработке событий: {e}")
+            logger.error(f"$REDОшибка при обработке событий: $YELLOW{e}$RESET")
+            logger.debug("TRACEBACK", exc_info=True)
             self.running = False
 
     def send_message(self, chat_id: int, text: str, chat_name: str = ""):
         """Отправляет сообщение в чат"""
         try:
-            logger.info(f"Отправка сообщения в чат {chat_name} ({chat_id}): {text[:50]}...")
+            logger.info(f"$CYANОтправка сообщения в чат $YELLOW{chat_name} (ID: {chat_id})$RESET: $CYAN{text[:50]}...$RESET")
             self.account.send_message(str(chat_id), text)
+            logger.info(f"$GREENСообщение отправлено в чат $YELLOW{chat_name}$RESET")
             return True
         except Exception as e:
-            logger.error(f"Ошибка при отправке сообщения: {e}")
+            logger.error(f"$REDОшибка при отправке сообщения: $YELLOW{e}$RESET")
+            logger.debug("TRACEBACK", exc_info=True)
             return False
