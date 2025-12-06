@@ -318,7 +318,7 @@ class TGBot:
                          c.message.chat.id))
         self.attempts[c.from_user.id] = self.attempts.get(c.from_user.id, 0) + 1
         if self.attempts[c.from_user.id] <= 5:
-            self.bot.answer_callback_query(c.id, _("adv_fpc", language=c.from_user.language_code), show_alert=True)
+            self.bot.answer_callback_query(c.id, _("adv_poc", language=c.from_user.language_code), show_alert=True)
         return
 
     # Команды
@@ -326,12 +326,18 @@ class TGBot:
         """
         Отправляет основное меню настроек (новым сообщением).
         """
+        if m.from_user.id not in self.authorized_users:
+            self.reg_admin(m)
+            return
         self.bot.send_message(m.chat.id, _("desc_main"), reply_markup=skb.SETTINGS_SECTIONS())
 
     def send_profile(self, m: Message):
         """
         Отправляет статистику аккаунта.
         """
+        if m.from_user.id not in self.authorized_users:
+            self.reg_admin(m)
+            return
         self.bot.send_message(m.chat.id, utils.generate_profile_text(self.cardinal),
                               reply_markup=skb.REFRESH_BTN())
 
@@ -339,6 +345,9 @@ class TGBot:
         """
         Активирует режим ввода golden_key.
         """
+        if m.from_user.id not in self.authorized_users:
+            self.reg_admin(m)
+            return
         result = self.bot.send_message(m.chat.id, _("act_change_golden_key"), reply_markup=skb.CLEAR_STATE_BTN())
         self.set_state(m.chat.id, result.id, m.from_user.id, CBT.CHANGE_GOLDEN_KEY)
 
@@ -403,6 +412,9 @@ class TGBot:
         """
         Активирует режим ввода названия лота для ручной генерации ключа теста автовыдачи.
         """
+        if m.from_user.id not in self.authorized_users:
+            self.reg_admin(m)
+            return
         result = self.bot.send_message(m.chat.id, _("create_test_ad_key"), reply_markup=skb.CLEAR_STATE_BTN())
         self.set_state(m.chat.id, result.id, m.from_user.id, CBT.MANUAL_AD_TEST)
 
@@ -422,6 +434,9 @@ class TGBot:
         """
         Активирует режим ввода никнейма пользователя, которого нужно добавить в ЧС.
         """
+        if m.from_user.id not in self.authorized_users:
+            self.reg_admin(m)
+            return
         result = self.bot.send_message(m.chat.id, _("act_blacklist"), reply_markup=skb.CLEAR_STATE_BTN())
         self.set_state(m.chat.id, result.id, m.from_user.id, CBT.BAN)
 
@@ -445,6 +460,9 @@ class TGBot:
         """
         Активирует режим ввода никнейма пользователя, которого нужно удалить из ЧС.
         """
+        if m.from_user.id not in self.authorized_users:
+            self.reg_admin(m)
+            return
         result = self.bot.send_message(m.chat.id, _("act_unban"), reply_markup=skb.CLEAR_STATE_BTN())
         self.set_state(m.chat.id, result.id, m.from_user.id, CBT.UNBAN)
 
@@ -466,6 +484,9 @@ class TGBot:
         """
         Отправляет ЧС.
         """
+        if m.from_user.id not in self.authorized_users:
+            self.reg_admin(m)
+            return
         if not self.cardinal.blacklist:
             self.bot.send_message(m.chat.id, _("blacklist_empty"))
             return
@@ -476,6 +497,9 @@ class TGBot:
         """
         Активирует режим ввода вотемарки сообщений.
         """
+        if m.from_user.id not in self.authorized_users:
+            self.reg_admin(m)
+            return
         watermark = self.cardinal.MAIN_CFG["Other"]["watermark"]
         watermark = f"\n<code>{utils.escape(watermark)}</code>" if watermark else ""
         result = self.bot.send_message(m.chat.id, _("act_edit_watermark").format(watermark),
@@ -505,6 +529,9 @@ class TGBot:
         """
         Отправляет файл логов.
         """
+        if m.from_user.id not in self.authorized_users:
+            self.reg_admin(m)
+            return
         if not os.path.exists("logs/log.log"):
             self.bot.send_message(m.chat.id, _("logfile_not_found"))
         else:
@@ -534,6 +561,9 @@ class TGBot:
         """
         Удаляет старые лог-файлы.
         """
+        if m.from_user.id not in self.authorized_users:
+            self.reg_admin(m)
+            return
         logger.info(
             f"[IMPORTANT] Удаляю логи по запросу пользователя $MAGENTA@{m.from_user.username} (id: {m.from_user.id})$RESET.")
         deleted = 0  # locale
@@ -550,9 +580,15 @@ class TGBot:
         """
         Отправляет информацию о текущей версии бота.
         """
+        if m.from_user.id not in self.authorized_users:
+            self.reg_admin(m)
+            return
         self.bot.send_message(m.chat.id, _("about", self.cardinal.VERSION))
 
     def check_updates(self, m: Message):
+        if m.from_user.id not in self.authorized_users:
+            self.reg_admin(m)
+            return
         curr_tag = f"v{self.cardinal.VERSION}"
         releases = updater.get_new_releases(curr_tag)
         if isinstance(releases, int):
@@ -569,6 +605,9 @@ class TGBot:
         self.bot.send_message(m.chat.id, _("update_update"))
 
     def get_backup(self, m: Message):
+        if m.from_user.id not in self.authorized_users:
+            self.reg_admin(m)
+            return
         logger.info(
             f"[IMPORTANT] Получаю бэкап по запросу пользователя $MAGENTA@{m.from_user.username} (id: {m.from_user.id})$RESET.")
         if os.path.exists("backup.zip"):  # locale
@@ -581,6 +620,9 @@ class TGBot:
             self.bot.send_message(m.chat.id, _("update_backup_not_found"))
 
     def create_backup(self, m: Message):
+        if m.from_user.id not in self.authorized_users:
+            self.reg_admin(m)
+            return
         if updater.create_backup():
             self.bot.send_message(m.chat.id, _("update_backup_error"))
             return False
@@ -588,6 +630,9 @@ class TGBot:
         return True
 
     def update(self, m: Message):
+        if m.from_user.id not in self.authorized_users:
+            self.reg_admin(m)
+            return
         curr_tag = f"v{self.cardinal.VERSION}"
         releases = updater.get_new_releases(curr_tag)
         if isinstance(releases, int):
@@ -621,6 +666,9 @@ class TGBot:
         """
         Отправляет информацию о нагрузке на систему.
         """
+        if m.from_user.id not in self.authorized_users:
+            self.reg_admin(m)
+            return
         current_time = int(time.time())
         uptime = current_time - self.cardinal.start_time
 
@@ -636,13 +684,19 @@ class TGBot:
         """
         Перезапускает кардинал.
         """
+        if m.from_user.id not in self.authorized_users:
+            self.reg_admin(m)
+            return
         self.bot.send_message(m.chat.id, _("restarting"))
         cardinal_tools.restart_program()
 
     def ask_power_off(self, m: Message):
         """
-        Просит подтверждение на отключение FPC.
+        Просит подтверждение на отключение POC.
         """
+        if m.from_user.id not in self.authorized_users:
+            self.reg_admin(m)
+            return
         self.bot.send_message(m.chat.id, _("power_off_0"), reply_markup=kb.power_off(self.cardinal.instance_id, 0))
 
     def cancel_power_off(self, c: CallbackQuery):
@@ -709,8 +763,11 @@ class TGBot:
 
     def act_upload_image(self, m: Message):
         """
-        Активирует режим ожидания изображения для последующей выгрузки на FunPay.
+        Активирует режим ожидания изображения для последующей выгрузки на Playerok.
         """
+        if m.from_user.id not in self.authorized_users:
+            self.reg_admin(m)
+            return
         cbt = CBT.UPLOAD_CHAT_IMAGE if m.text.startswith("/upload_chat_img") else CBT.UPLOAD_OFFER_IMAGE
         result = self.bot.send_message(m.chat.id, _("send_img"), reply_markup=skb.CLEAR_STATE_BTN())
         self.set_state(m.chat.id, result.id, m.from_user.id, cbt)
@@ -719,6 +776,9 @@ class TGBot:
         """
         Активирует режим ожидания бекапа.
         """
+        if m.from_user.id not in self.authorized_users:
+            self.reg_admin(m)
+            return
         result = self.bot.send_message(m.chat.id, _("send_backup"), reply_markup=skb.CLEAR_STATE_BTN())
         self.set_state(m.chat.id, result.id, m.from_user.id, CBT.UPLOAD_BACKUP)
 
@@ -1037,6 +1097,9 @@ class TGBot:
         """
         Отправляет сообщение с клавиатурой управления уведомлениями о новых объявлениях.
         """
+        if m.from_user.id not in self.authorized_users:
+            self.reg_admin(m)
+            return
         self.bot.send_message(m.chat.id, _("desc_an"), reply_markup=kb.announcements_settings(self.cardinal, m.chat.id))
 
     def send_review_reply_text(self, c: CallbackQuery):
@@ -1058,7 +1121,7 @@ class TGBot:
         self.bot.send_message(c.message.chat.id, _("old_mode_help"))
 
     def empty_callback(self, c: CallbackQuery):
-        self.bot.answer_callback_query(c.id, "🤑 @sidor_donate 🤑")
+        self.bot.answer_callback_query(c.id, "👨‍💻 @KaDerix 👨‍💻")
 
     def switch_lang(self, c: CallbackQuery):
         lang = c.data.split(":")[1]

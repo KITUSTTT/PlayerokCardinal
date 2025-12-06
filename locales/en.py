@@ -217,11 +217,9 @@ fpc_init = """✅ <b><u>FunPay Cardinal initialized!</u></b>\n
 💰 <b><i>Balance:</i></b> <code>{}₽, {}$, {}€</code>
 📊 <b><i>Active orders:</i></b>  <code>{}</code>
 
-💬 <b><i>Telegram chat:</i></b> @funpay_cardinal
-🔄 <b><i>Updates:</i></b> @fpc_updates
-🧩 <b><i>Plugins:</i></b> @fpc_plugins
-👨‍💻 <b><i>Developer:</i></b> @woopertail, @sidor0912
-🤑 <b><i>Donate:</i></b> @sidor_donate"""
+💬 <b><i>Telegram chat:</i></b> @kaderixfjsfsd
+🧩 <b><i>Plugins:</i></b> @KaDerix_Shop
+👨‍💻 <b><i>Developer:</i></b> @KaDerix"""
 
 create_test_ad_key = "Enter the name of the lot whose auto-delivery you want to test."
 
@@ -229,12 +227,10 @@ test_ad_key_created = """✅ A one-time key for <code>{}</code> delivery has bee
 Send the command from below to chat with the user to whom you want to deliver the item.\n
 <code>!автовыдача {}</code>"""
 
-about = """<b>🐦 FunPay Cardinal 🐦 v{}</b>\n
-<i>Telegram chat:</i> @funpay_cardinal
-<i>Updates:</i> @fpc_updates
-<i>Plugins:</i> @fpc_plugins
-<i>Developer:</i> @woopertail, @sidor0912
-<i>Donate:</i> @sidor_donate"""
+about = """<b>🐦 Playerok Cardinal 🐦 v{}</b>\n
+<i>Telegram chat:</i> @kaderixfjsfsd
+<i>Plugins:</i> @KaDerix_Shop
+<i>Developer:</i> @KaDerix"""
 
 sys_info = """<b><u>Data summary</u></b>
 
@@ -290,7 +286,7 @@ logfile_error = "❌ Failed to send log file."
 logfile_deleted = "🗑️ Deleted {} logfile(s)."
 
 update_no_tags = "❌ Failed to get the version list. Try again later."
-update_lasted = "✅ You have the latest version FunPayCardinal {}"
+update_lasted = "✅ You have the latest version Playerok Cardinal {}"
 update_get_error = "❌ Failed to get new version information. Try again later."
 update_available = "<b><u>New version available!</u></b>\n\n\n{}\n\n{}"
 update_update = "To update, enter the command /update"
@@ -416,10 +412,10 @@ pl_file_not_found_err = "❌  File <code>{}</code> not found.\nRestart <i>FPC</i
 pl_commands_list = "<b><i>{}</i></b> plugin commands list."
 pl_author = "Dev"
 pl_new = "Send me a plugin.\n\n<b>⚠️ ATTENTION! Downloading plugins from questionable sources may lead to unfortunate consequences.\n" \
-         "@fpc_plugins solves most potential issues.</b>"
+         "@KaDerix_Shop solves most potential issues.</b>"
 
 au_user_settings = "Settings for user {}"
-adv_fpc = "😎 FunPay Cardinal - the best bot for FunPay"
+adv_poc = "😎 Playerok Cardinal (POC) - the best bot for Playerok"
 adv_description = """🐦 Playerok Cardinal v{}🐦
 
 🤖 Automatic product delivery
@@ -433,10 +429,10 @@ adv_description = """🐦 Playerok Cardinal v{}🐦
 🧩 Plugins
 🌟 And much more...
 
-🛠️ Create your own bot: github.com/sidor0912/FunPayCardinal
-🔄 Updates: @fpc_updates
-🧩 Plugins: @fpc_plugins
-💬 Chat: @funpay_cardinal"""
+🛠️ Playerok Cardinal (POC)
+🧩 Plugins: @KaDerix_Shop
+💬 Chat: @kaderixfjsfsd
+👨‍💻 Developer: @KaDerix"""
 
 # - Menus desc
 desc_main = "Select a settings category."

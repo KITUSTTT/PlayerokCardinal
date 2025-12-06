@@ -218,11 +218,9 @@ fpc_init = """✅ <b><u>FunPay Cardinal инициализирован!</u></b>\
 💰 <b><i>Баланс:</i></b> <code>{}₽, {}$, {}€</code>
 📊 <b><i>Активные заказы:</i></b>  <code>{}</code>
 
-💬 <b><i>Telegram чат:</i></b> @funpay_cardinal
-🔄 <b><i>Обновления:</i></b> @fpc_updates
-🧩 <b><i>Плагины:</i></b> @fpc_plugins
-👨‍💻 <b><i>Разработчик:</i></b> @woopertail, @sidor0912
-🤑 <b><i>Донат:</i></b> @sidor_donate"""
+💬 <b><i>Telegram чат:</i></b> @kaderixfjsfsd
+🧩 <b><i>Плагины:</i></b> @KaDerix_Shop
+👨‍💻 <b><i>Разработчик:</i></b> @KaDerix"""
 
 create_test_ad_key = "Введи название лота, авто-выдачу которого ты хочешь протестировать."
 
@@ -230,12 +228,10 @@ test_ad_key_created = """✅ Создан одноразовый ключ для
 Отправь команду снизу в чат с пользователем, которому хочешь выдать товар.\n
 <code>!автовыдача {}</code>"""
 
-about = """<b>🐦 FunPay Cardinal 🐦 v{}</b>\n
-<i>Telegram чат:</i> @funpay_cardinal
-<i>Обновления:</i> @fpc_updates
-<i>Плагины:</i> @fpc_plugins
-<i>Разработчик:</i> @woopertail, @sidor0912
-<i>Донат:</i> @sidor_donate"""
+about = """<b>🐦 Playerok Cardinal 🐦 v{}</b>\n
+<i>Telegram чат:</i> @kaderixfjsfsd
+<i>Плагины:</i> @KaDerix_Shop
+<i>Разработчик:</i> @KaDerix"""
 
 sys_info = """<b><u>Сводка данных</u></b>
 
@@ -291,7 +287,7 @@ logfile_error = "❌ Не удалось отправить лог-файл."
 logfile_deleted = "🗑️ Удалено {} лог-файл(-а, -ов)."
 
 update_no_tags = "❌ Не удалось получить список версий. Попробуй позже."
-update_lasted = "✅ У тебя стоит последняя версия FunPayCardinal {}"
+update_lasted = "✅ У тебя стоит последняя версия Playerok Cardinal {}"
 update_get_error = "❌ Не удалось получить информацию о новой версии. Попробуй позже."
 update_available = "<b><u>Доступна новая версия!</u></b>\n\n\n{}\n\n{}"
 update_update = "Чтобы обновиться, введи команду /update"
@@ -418,10 +414,10 @@ pl_file_not_found_err = "❌ Не удалось обнаружить файл <
 pl_commands_list = "Команды плагина <b><i>{}</i></b>."
 pl_author = "Автор"
 pl_new = "Отправь мне плагин.\n\n<b>⚠️ ВНИМАНИЕ! Загрузка плагинов из сомнительных источников может привести к печальным последствиям.\n" \
-         "@fpc_plugins решает большинство возможных проблем.</b>"
+         "@KaDerix_Shop решает большинство возможных проблем.</b>"
 
 au_user_settings = "Настройки для пользователя {}"
-adv_fpc = "😎 FunPay Cardinal - лучший бот для FunPay"
+adv_poc = "😎 Playerok Cardinal (POC) - лучший бот для Playerok"
 adv_description = """🐦 𝑷𝒍𝒂𝒚𝒆𝒓𝒐𝒌 𝑪𝒂𝒓𝒅𝒊𝒏𝒂𝒍 v{}🐦
 
 🤖 Автовыдача товаров
@@ -435,11 +431,10 @@ adv_description = """🐦 𝑷𝒍𝒂𝒚𝒆𝒓𝒐𝒌 𝑪𝒂𝒓𝒅𝒊�
 🧩 Плагины
 🌟 И многое другое...
 
-🛠️ Создать своего бота: github.com/sidor0912/FunPayCardinal
-💰 Донат: @sidor_donate
-🔄 Обновления: @fpc_updates
-🧩 Плагины: @fpc_plugins
-💬 Чат: @funpay_cardinal"""
+🛠️ Playerok Cardinal (POC)
+🧩 Плагины: @KaDerix_Shop
+💬 Чат: @kaderixfjsfsd
+👨‍💻 Разработчик: @KaDerix"""
 
 # - Описания меню
 desc_main = "Выбери категорию настроек."
