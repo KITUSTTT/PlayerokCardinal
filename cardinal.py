@@ -227,9 +227,6 @@ class Cardinal(object):
         
         handlers.register_handlers(self)
         
-        # Вызываем pre_init_handlers
-        self.run_handlers(self.pre_init_handlers, (self,))
-        
         if self.MAIN_CFG["Telegram"].get("enabled") == "1":
             self.__init_telegram()
             # Импортируем и регистрируем обработчики Telegram
@@ -239,14 +236,14 @@ class Cardinal(object):
                 for module in [auto_response_cp, auto_delivery_cp, config_loader_cp, templates_cp, plugins_cp,
                                file_uploader, authorized_users_cp, proxy_cp, default_cp]:
                     try:
-                        # Регистрируем обработчики из модуля
+                        # Регистрируем обработчики из модуля через BIND_TO_*
                         self.add_handlers_from_plugin(module)
-                        # Вызываем init если есть
-                        if hasattr(module, 'init'):
-                            module.init(self)
                     except Exception as e:
-                        logger.error(f"$REDОшибка при инициализации модуля $YELLOW{module.__name__}$RESET: $YELLOW{e}$RESET")
+                        logger.error(f"$REDОшибка при регистрации обработчиков модуля $YELLOW{module.__name__}$RESET: $YELLOW{e}$RESET")
                         logger.debug("TRACEBACK", exc_info=True)
+                
+                # Вызываем pre_init обработчики (они регистрируют callback handlers в telegram боте)
+                self.run_handlers(self.pre_init_handlers, (self,))
             except Exception as e:
                 logger.warning(f"$YELLOWОшибка при загрузке Telegram модулей: $YELLOW{e}$RESET")
                 logger.debug("TRACEBACK", exc_info=True)

@@ -226,7 +226,7 @@ class TGBot:
         def run_handler(message: Message):
             try:
                 handler(message)
-            except:
+            except Exception as e:
                 logger.error(_("log_tg_handler_error"))
                 logger.debug("TRACEBACK", exc_info=True)
 
@@ -244,7 +244,7 @@ class TGBot:
         def run_handler(call: CallbackQuery):
             try:
                 handler(call)
-            except:
+            except Exception as e:
                 logger.error(_("log_tg_handler_error"))
                 logger.debug("TRACEBACK", exc_info=True)
 
@@ -261,7 +261,7 @@ class TGBot:
         def run_handler(bot, update):
             try:
                 handler(bot, update)
-            except:
+            except Exception as e:
                 logger.error(_("log_tg_handler_error"))
                 logger.debug("TRACEBACK", exc_info=True)
 
@@ -1028,16 +1028,24 @@ class TGBot:
         """
         Открывает основное меню настроек (редактирует сообщение).
         """
-        self.bot.edit_message_text(_("desc_main"), c.message.chat.id, c.message.id,
-                                   reply_markup=skb.SETTINGS_SECTIONS())
+        try:
+            self.bot.edit_message_text(_("desc_main"), c.message.chat.id, c.message.id,
+                                       reply_markup=skb.SETTINGS_SECTIONS())
+        except Exception as e:
+            if "message is not modified" not in str(e):
+                raise
         self.bot.answer_callback_query(c.id)
 
     def open_cp2(self, c: CallbackQuery):
         """
         Открывает 2 страницу основного меню настроек (редактирует сообщение).
         """
-        self.bot.edit_message_text(_("desc_main"), c.message.chat.id, c.message.id,
-                                   reply_markup=skb.SETTINGS_SECTIONS_2())
+        try:
+            self.bot.edit_message_text(_("desc_main"), c.message.chat.id, c.message.id,
+                                       reply_markup=skb.SETTINGS_SECTIONS_2())
+        except Exception as e:
+            if "message is not modified" not in str(e):
+                raise
         self.bot.answer_callback_query(c.id)
 
     def switch_param(self, c: CallbackQuery):
@@ -1112,7 +1120,11 @@ class TGBot:
         }
 
         curr = sections[section]
-        self.bot.edit_message_text(curr[0], c.message.chat.id, c.message.id, reply_markup=curr[1](*curr[2]))
+        try:
+            self.bot.edit_message_text(curr[0], c.message.chat.id, c.message.id, reply_markup=curr[1](*curr[2]))
+        except Exception as e:
+            if "message is not modified" not in str(e):
+                raise
         self.bot.answer_callback_query(c.id)
 
     # Прочее
