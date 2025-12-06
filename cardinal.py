@@ -38,7 +38,8 @@ class Cardinal(object):
         self.AR_CFG = auto_response_config
         self.RAW_AR_CFG = raw_auto_response_config
         
-        self.proxy = {}
+        self.proxy = None
+        self.proxy_dict = {}  # Для проверки прокси через requests
         if self.MAIN_CFG["Proxy"].get("enable") == "1":
             if self.MAIN_CFG["Proxy"]["ip"] and self.MAIN_CFG["Proxy"]["port"].isnumeric():
                 from locales.localizer import Localizer
@@ -49,19 +50,22 @@ class Cardinal(object):
                 ip, port = self.MAIN_CFG["Proxy"]["ip"], self.MAIN_CFG["Proxy"]["port"]
                 login, password = self.MAIN_CFG["Proxy"]["login"], self.MAIN_CFG["Proxy"]["password"]
                 proxy_str = f"{f'{login}:{password}@' if login and password else ''}{ip}:{port}"
-                self.proxy = {
+                # Словарь для проверки прокси через requests
+                self.proxy_dict = {
                     "http": f"http://{proxy_str}",
                     "https": f"http://{proxy_str}"
                 }
+                # Строка для PlayerokAPI.Account
+                self.proxy = proxy_str
                 
                 if self.MAIN_CFG["Proxy"].get("check") == "1":
-                    if not cardinal_tools.check_proxy(self.proxy):
+                    if not cardinal_tools.check_proxy(self.proxy_dict):
                         logger.error(_("crd_proxy_err"))
                         sys.exit()
                     else:
                         import requests
                         try:
-                            response = requests.get("https://api.ipify.org?format=json", proxies=self.proxy, timeout=10)
+                            response = requests.get("https://api.ipify.org?format=json", proxies=self.proxy_dict, timeout=10)
                             ip_address = response.json().get("ip", "unknown")
                             logger.info(_("crd_proxy_success", ip_address))
                         except:
