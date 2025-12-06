@@ -160,6 +160,7 @@ def get_releases(from_tag: str) -> list[Release] | None:
             if tag_name == from_tag:
                 to_append = True
                 logger.info(_("upd_found_tag", from_tag))
+                continue  # Пропускаем сам тег from_tag, начинаем добавлять со следующего
 
             if to_append:
                 description = el.get("body", "")
@@ -175,7 +176,9 @@ def get_releases(from_tag: str) -> list[Release] | None:
             logger.info(_("upd_releases_found", len(result)))
         else:
             logger.warning(_("upd_no_releases_after_tag", from_tag))
-        return result if result else None
+            # Если нет релизов после тега, значит текущая версия последняя
+            return None
+        return result
     except:
         logger.debug("TRACEBACK", exc_info=True)
         return None
