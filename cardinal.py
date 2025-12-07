@@ -255,6 +255,10 @@ class Cardinal(object):
         self.load_plugins()
         self.add_handlers()
         
+        # Обновляем меню команд после загрузки плагинов
+        if self.telegram:
+            self.telegram.update_commands_menu()
+        
         logger.info("$GREENCardinal инициализирован успешно!$RESET")
         
         # Вызываем post_init_handlers с задержкой, чтобы бот успел отправить bot_started

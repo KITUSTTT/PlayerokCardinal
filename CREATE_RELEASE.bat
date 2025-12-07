@@ -1,126 +1,114 @@
 @echo off
 setlocal enabledelayedexpansion
-chcp 65001 > nul
+chcp 65001 >nul 2>&1
 
 echo ============================================
-echo   Создание релиза Playerok Cardinal
+echo   Creating Playerok Cardinal Release
 echo ============================================
 echo.
 
-:: Проверяем git репозиторий
+:: Check git repository
 git rev-parse --git-dir >nul 2>&1
 if errorlevel 1 (
-    echo [INFO] Инициализация git репозитория...
+    echo [INFO] Initializing git repository...
     git init
     git branch -M main
-    echo [OK] Git репозиторий инициализирован
+    echo [OK] Git repository initialized
     echo.
-    echo [WARNING] Настройте удаленный репозиторий:
+    echo [WARNING] Configure remote repository:
     echo    git remote add origin https://github.com/KITUSTTT/PlayerokCardinal.git
     echo.
 )
 
-:: Извлекаем версию из main.py
+:: Get version from main.py using Python script
 set VERSION=
-for /f "tokens=*" %%a in ('findstr /c:"VERSION = " main.py') do (
-    set "LINE=%%a"
-    for /f "tokens=2 delims=^=" %%b in ("!LINE!") do (
-        set "VERSION=%%b"
-        set "VERSION=!VERSION: =!"
-        set "VERSION=!VERSION:"=!"
-    )
-)
+for /f "delims=" %%a in ('python get_version.py') do set "VERSION=%%a"
 
 if "!VERSION!"=="" (
-    echo [ERROR] Не удалось определить версию из main.py
-    echo Убедитесь, что в main.py есть: VERSION = "1.0.0"
+    echo [ERROR] Failed to get version from main.py
+    echo Make sure main.py contains: VERSION = "1.0.0"
     echo.
-    echo Нажмите любую клавишу для выхода...
     pause
     exit /b 1
 )
 
-echo [INFO] Текущая версия: !VERSION!
+echo [INFO] Current version: !VERSION!
 echo.
 
-:: Показываем статус
-echo [INFO] Статус репозитория:
+:: Show status
+echo [INFO] Repository status:
 git status --short
 echo.
 
-:: Удаляем старый тег, если существует
+:: Delete old tag if exists
 git tag -l v!VERSION! >nul 2>&1
 if not errorlevel 1 (
-    echo [INFO] Тег v!VERSION! уже существует, удаляю...
+    echo [INFO] Tag v!VERSION! already exists, deleting...
     git tag -d v!VERSION! >nul 2>&1
     git push origin :refs/tags/v!VERSION! >nul 2>&1
-    echo [OK] Старый тег удален
+    echo [OK] Old tag deleted
 )
 
-:: Добавляем все файлы
+:: Add all files
 echo.
-echo [INFO] Добавление всех изменений...
+echo [INFO] Adding all changes...
 git add .
 
-:: Создаем коммит
-echo [INFO] Создание коммита...
+:: Create commit
+echo [INFO] Creating commit...
 git commit -m "Release v!VERSION!" >nul 2>&1
 if errorlevel 1 (
-    echo [WARNING] Нет изменений для коммита
+    echo [WARNING] No changes to commit
 ) else (
-    echo [OK] Коммит создан
+    echo [OK] Commit created
 )
 
-:: Создаем тег
+:: Create tag
 echo.
-echo [INFO] Создание тега v!VERSION!...
+echo [INFO] Creating tag v!VERSION!...
 git tag -a v!VERSION! -m "Playerok Cardinal v!VERSION!" -f
 if errorlevel 1 (
-    echo [ERROR] Ошибка при создании тега
+    echo [ERROR] Failed to create tag
     echo.
-    echo Нажмите любую клавишу для выхода...
     pause
     exit /b 1
 )
-echo [OK] Тег создан
+echo [OK] Tag created
 
-:: Отправляем в GitHub
+:: Push to GitHub
 echo.
-echo [INFO] Отправка в GitHub...
+echo [INFO] Pushing to GitHub...
 git push origin main
 if errorlevel 1 (
-    echo [ERROR] Ошибка при отправке в main
-    echo Проверьте: git remote -v
+    echo [ERROR] Failed to push to main
+    echo Check: git remote -v
     echo.
-    echo Нажмите любую клавишу для выхода...
     pause
     exit /b 1
 )
-echo [OK] Изменения отправлены в main
+echo [OK] Changes pushed to main
 
 git push origin v!VERSION! --force
 if errorlevel 1 (
-    echo [ERROR] Ошибка при отправке тега
-    echo Проверьте: git remote -v
+    echo [ERROR] Failed to push tag
+    echo Check: git remote -v
     echo.
-    echo Нажмите любую клавишу для выхода...
     pause
     exit /b 1
 )
-echo [OK] Тег v!VERSION! отправлен
+echo [OK] Tag v!VERSION! pushed
 
 echo.
 echo ============================================
-echo [OK] Готово!
+echo [OK] Done!
 echo ============================================
 echo.
-echo Следующие шаги:
-echo 1. Перейдите: https://github.com/KITUSTTT/PlayerokCardinal/releases/new
-echo 2. Выберите тег: v!VERSION!
-echo 3. Заголовок: Playerok Cardinal v!VERSION!
-echo 4. Описание: Скопируйте из CHANGELOG.md
-echo 5. Нажмите "Publish release"
+echo Next steps:
+echo 1. Go to: https://github.com/KITUSTTT/PlayerokCardinal/releases/new
+echo 2. Select tag: v!VERSION!
+echo 3. Title: Playerok Cardinal v!VERSION!
+echo 4. Description: Copy from CHANGELOG.md if available
+echo 5. Click Publish release
 echo.
 echo.
-echo Нажмите любую клавишу для выхода...
 pause

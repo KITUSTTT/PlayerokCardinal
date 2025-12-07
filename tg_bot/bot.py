@@ -68,6 +68,33 @@ class TGBot:
         self.answer_templates = utils.load_answer_templates()  # заготовки ответов.
         self.authorized_users = utils.load_authorized_users()  # авторизированные пользователи.
 
+        # Словарь для обработчиков команд (используется для маршрутизации)
+        self.command_handlers = {
+            "menu": "cmd_menu",
+            "profile": "cmd_profile",
+            "restart": "cmd_restart",
+            "check_updates": "cmd_check_updates",
+            "update": "cmd_update",
+            "token": "cmd_token",
+            "ban": "cmd_ban",
+            "unban": "cmd_unban",
+            "black_list": "cmd_black_list",
+            "upload_chat_img": "cmd_upload_chat_img",
+            "upload_offer_img": "cmd_upload_offer_img",
+            "upload_plugin": "cmd_upload_plugin",
+            "test_lot": "cmd_test_lot",
+            "logs": "cmd_logs",
+            "about": "cmd_about",
+            "sys": "cmd_sys",
+            "get_backup": "cmd_get_backup",
+            "create_backup": "cmd_create_backup",
+            "upload_backup": "cmd_upload_backup",
+            "del_logs": "cmd_del_logs",
+            "power_off": "cmd_power_off",
+            "watermark": "cmd_watermark",
+        }
+        # Словарь для меню команд (используется для Bot API)
+        # Ключи - это ключи локализации, которые будут переведены в setup_commands
         self.commands = {
             "menu": "cmd_menu",
             "profile": "cmd_profile",
@@ -229,6 +256,10 @@ class TGBot:
             except Exception as e:
                 logger.error(_("log_tg_handler_error"))
                 logger.debug("TRACEBACK", exc_info=True)
+                try:
+                    bot_instance.send_message(message.chat.id, "❌ Произошла ошибка. Попробуйте через пару секунд...")
+                except:
+                    pass
 
     def cbq_handler(self, handler, func, **kwargs):
         """
@@ -1308,13 +1339,30 @@ class TGBot:
         :param help_text: текст справки.
         """
         self.commands[command] = help_text
+    
+    def update_commands_menu(self):
+        """
+        Обновляет меню команд бота (вызывается после загрузки плагинов).
+        """
+        self.setup_commands()
 
     def setup_commands(self):
         """
         Устанавливает меню команд.
         """
         for lang in (None, *localizer.languages.keys()):
-            commands = [BotCommand(f"/{i}", _(self.commands[i], language=lang)) for i in self.commands]
+            commands = []
+            for cmd in self.commands:
+                # Если значение - это ключ локализации (начинается с "cmd_"), переводим его
+                # Если значение - это уже текст (от плагина), используем как есть
+                help_text = self.commands[cmd]
+                if help_text.startswith("cmd_") and hasattr(localizer, 'translate'):
+                    # Это ключ локализации, переводим
+                    translated = _(help_text, language=lang)
+                else:
+                    # Это уже текст от плагина, используем как есть
+                    translated = help_text
+                commands.append(BotCommand(f"/{cmd}", translated))
             self.bot.set_my_commands(commands, language_code=lang)
 
     def edit_bot(self):
