@@ -572,11 +572,11 @@ class TGBot:
         else:
             self.bot.send_message(m.chat.id, _("logfile_sending"))
             try:
-                with open("logs/log.log", "r", encoding="utf-8") as f:
-                    self.bot.send_document(m.chat.id, f,
-                                           caption=f'{_("gs_old_msg_mode").replace("{} ", "") if self.cardinal.old_mode_enabled else ""}')
+                with open("logs/log.log", "rb") as f:
+                    self.bot.send_document(m.chat.id, InputFile(f, filename="log.log"),
+                                           caption=f'{_("gs_old_msg_mode").replace("{} ", "") if hasattr(self.cardinal, "old_mode_enabled") and self.cardinal.old_mode_enabled else ""}')
                     f.seek(0)
-                    file_content = f.read()
+                    file_content = f.read().decode("utf-8", errors="ignore")
                     if "TRACEBACK" in file_content:
                         file_content, right = file_content.rsplit("TRACEBACK", 1)
                         file_content = "\n[".join(file_content.rsplit("\n[", 2)[-2:])
@@ -588,7 +588,8 @@ class TGBot:
                             time.sleep(0.5)
                     else:
                         self.bot.send_message(m.chat.id, "<b>Ошибок в последнем лог-файле не обнаружено.</b>")  # locale
-            except:
+            except Exception as e:
+                logger.error(f"Ошибка отправки лог-файла: {e}")
                 logger.debug("TRACEBACK", exc_info=True)
                 self.bot.send_message(m.chat.id, _("logfile_error"))
 
@@ -1081,6 +1082,7 @@ class TGBot:
 
         sections = {
             "FunPay": kb.main_settings,
+            "Playerok": kb.main_settings,  # Playerok использует те же настройки что и FunPay
             "BlockList": kb.blacklist_settings,
             "NewMessageView": kb.new_message_view_settings,
             "Greetings": kb.greeting_settings,
@@ -1090,9 +1092,12 @@ class TGBot:
         if section == "Telegram":
             self.bot.edit_message_reply_markup(c.message.chat.id, c.message.id,
                                                reply_markup=kb.authorized_users(self.cardinal, offset=int(split[3])))
-        else:
+        elif section in sections:
             self.bot.edit_message_reply_markup(c.message.chat.id, c.message.id,
                                                reply_markup=sections[section](self.cardinal))
+        else:
+            logger.warning(f"Неизвестная секция настроек: {section}")
+            self.bot.answer_callback_query(c.id, text="Неизвестная секция настроек", show_alert=True)
         logger.info(_("log_param_changed", c.from_user.username, c.from_user.id, option, section,
                       self.cardinal.MAIN_CFG[section][option]))
         self.bot.answer_callback_query(c.id)

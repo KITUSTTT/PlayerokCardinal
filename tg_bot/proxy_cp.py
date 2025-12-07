@@ -50,9 +50,15 @@ def init_proxy_cp(crd: Cardinal, *args):
             check = proxy_section.getboolean("check")
         
         if enable and check:
+            # Ждем 5 секунд перед первой проверкой, чтобы избежать конфликта с проверкой при инициализации
+            time.sleep(5)
             while True:
                 for proxy in crd.proxy_dict.values():
-                    check_one_proxy(proxy)
+                    try:
+                        check_one_proxy(proxy)
+                    except Exception as e:
+                        logger.debug(f"Ошибка проверки прокси {proxy}: {e}")
+                        pass
                 time.sleep(3600)
 
     Thread(target=check_proxies, daemon=True).start()
