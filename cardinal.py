@@ -255,16 +255,17 @@ class Cardinal(object):
         self.load_plugins()
         self.add_handlers()
         
-        # Обновляем меню команд после загрузки плагинов
-        if self.telegram:
-            self.telegram.update_commands_menu()
-        
         logger.info("$GREENCardinal инициализирован успешно!$RESET")
         
         # Вызываем post_init_handlers с задержкой, чтобы бот успел отправить bot_started
         import time
         time.sleep(2)  # Даем время боту отправить сообщение bot_started и заполнить init_messages
         self.run_handlers(self.post_init_handlers, (self,))
+        
+        # Обновляем меню команд после загрузки плагинов и выполнения post_init_handlers
+        # (чтобы команды из плагинов успели зарегистрироваться)
+        if self.telegram:
+            self.telegram.update_commands_menu()
         
         return self
     
