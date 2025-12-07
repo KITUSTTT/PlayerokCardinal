@@ -25,10 +25,21 @@ def init_default_cp(crd: Cardinal, *args):
     def default_callback_answer(c: CallbackQuery):
         """
         Отвечает на колбеки, которые не поймал ни один хендлер.
+        ВАЖНО: Этот обработчик отключен, так как он мешает работе плагинов.
+        Плагины должны регистрировать свои обработчики с правильными фильтрами.
         """
-        bot.answer_callback_query(c.id, text=_(c.data), show_alert=True)
+        logger.debug(f"default_callback_answer получил callback: {c.data} (не должен вызываться)")
+        # Не обрабатываем callback'и, которые должны обрабатываться плагинами
+        # Просто отвечаем на callback_query, чтобы убрать индикатор загрузки
+        try:
+            bot.answer_callback_query(c.id)
+        except:
+            pass
 
-    tg.cbq_handler(default_callback_answer, lambda c: True)
+    # ОТКЛЮЧЕНО: Этот обработчик мешает работе плагинов, так как перехватывает все callback'и
+    # Плагины должны регистрировать свои обработчики с правильными фильтрами
+    # tg.cbq_handler(default_callback_answer, lambda c: True)
+    logger.debug("default_callback_answer отключен для корректной работы плагинов")
 
 
 BIND_TO_PRE_INIT = [init_default_cp]
