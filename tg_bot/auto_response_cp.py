@@ -82,7 +82,8 @@ def init_auto_response_cp(cardinal: Cardinal, *args):
             if commands.count(cmd) > 1:
                 bot.reply_to(m, _("ar_subcmd_duplicate_err", utils.escape(cmd)), reply_markup=error_keyboard)
                 return
-            if cmd in cardinal.AR_CFG.sections():
+            # AR_CFG это dict, а не ConfigParser
+            if cmd in cardinal.AR_CFG:
                 bot.reply_to(m, _("ar_cmd_already_exists_err", utils.escape(cmd)), reply_markup=error_keyboard)
                 return
 
@@ -91,9 +92,11 @@ def init_auto_response_cp(cardinal: Cardinal, *args):
         cardinal.RAW_AR_CFG.set(raw_command, "telegramNotification", "0")
 
         for cmd in commands:
-            cardinal.AR_CFG.add_section(cmd)
-            cardinal.AR_CFG.set(cmd, "response", "Данной команде необходимо настроить текст ответа :(")
-            cardinal.AR_CFG.set(cmd, "telegramNotification", "0")
+            # AR_CFG это dict, добавляем ключ
+            if cmd not in cardinal.AR_CFG:
+                cardinal.AR_CFG[cmd] = {}
+            cardinal.AR_CFG[cmd]["response"] = "Данной команде необходимо настроить текст ответа :("
+            cardinal.AR_CFG[cmd]["telegramNotification"] = "0"
 
         cardinal.save_config(cardinal.RAW_AR_CFG, "configs/auto_response.cfg")
 
@@ -161,7 +164,10 @@ def init_auto_response_cp(cardinal: Cardinal, *args):
         commands = [i.strip() for i in command.split("|") if i.strip()]
         cardinal.RAW_AR_CFG.set(command, "response", response_text)
         for cmd in commands:
-            cardinal.AR_CFG.set(cmd, "response", response_text)
+            # AR_CFG это dict
+            if cmd not in cardinal.AR_CFG:
+                cardinal.AR_CFG[cmd] = {}
+            cardinal.AR_CFG[cmd]["response"] = response_text
         cardinal.save_config(cardinal.RAW_AR_CFG, "configs/auto_response.cfg")
 
         logger.info(_("log_ar_response_text_changed", m.from_user.username, m.from_user.id, command, response_text))
@@ -203,7 +209,10 @@ def init_auto_response_cp(cardinal: Cardinal, *args):
         cardinal.RAW_AR_CFG.set(command, "notificationText", notification_text)
 
         for cmd in commands:
-            cardinal.AR_CFG.set(cmd, "notificationText", notification_text)
+            # AR_CFG это dict
+            if cmd not in cardinal.AR_CFG:
+                cardinal.AR_CFG[cmd] = {}
+            cardinal.AR_CFG[cmd]["notificationText"] = notification_text
         cardinal.save_config(cardinal.RAW_AR_CFG, "configs/auto_response.cfg")
 
         logger.info(
@@ -233,7 +242,10 @@ def init_auto_response_cp(cardinal: Cardinal, *args):
             value = "0"
         cardinal.RAW_AR_CFG.set(command, "telegramNotification", value)
         for cmd in commands:
-            cardinal.AR_CFG.set(cmd, "telegramNotification", value)
+            # AR_CFG это dict
+            if cmd not in cardinal.AR_CFG:
+                cardinal.AR_CFG[cmd] = {}
+            cardinal.AR_CFG[cmd]["telegramNotification"] = value
         cardinal.save_config(cardinal.RAW_AR_CFG, "configs/auto_response.cfg")
         logger.info(_("log_param_changed", c.from_user.username, c.from_user.id, command, value))
         open_edit_command_cp(c)
@@ -252,7 +264,9 @@ def init_auto_response_cp(cardinal: Cardinal, *args):
         commands = [i.strip() for i in command.split("|") if i.strip()]
         cardinal.RAW_AR_CFG.remove_section(command)
         for cmd in commands:
-            cardinal.AR_CFG.remove_section(cmd)
+            # AR_CFG это dict
+            if cmd in cardinal.AR_CFG:
+                del cardinal.AR_CFG[cmd]
         cardinal.save_config(cardinal.RAW_AR_CFG, "configs/auto_response.cfg")
         logger.info(_("log_ar_cmd_deleted", c.from_user.username, c.from_user.id, command))
         bot.edit_message_text(_("desc_ar_list"), c.message.chat.id, c.message.id,

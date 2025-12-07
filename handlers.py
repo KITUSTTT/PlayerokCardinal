@@ -19,7 +19,11 @@ def log_msg_handler(c: Cardinal, event: NewMessageEvent):
     message = event.message
     chat = event.chat
     chat_name = chat.name if hasattr(chat, 'name') else str(chat.id)
-    author = message.author.username if hasattr(message.author, 'username') else str(message.author)
+    # В PlayerokAPI используется message.user, а не message.author
+    if hasattr(message, 'user') and message.user:
+        author = message.user.username if hasattr(message.user, 'username') else str(message.user.id)
+    else:
+        author = "Unknown"
     logger.info(_("log_new_msg", chat_name, chat.id))
     logger.info(f"$MAGENTA└───> $YELLOW{author}: $CYAN{message.text or ''}")
 
@@ -36,7 +40,11 @@ def send_response_handler(c: Cardinal, event: NewMessageEvent):
     
     mtext = message.text.strip().lower()
     
-    author_username = message.author.username if hasattr(message.author, 'username') else str(message.author)
+    # В PlayerokAPI используется message.user, а не message.author
+    if hasattr(message, 'user') and message.user:
+        author_username = message.user.username if hasattr(message.user, 'username') else str(message.user.id)
+    else:
+        author_username = "Unknown"
     if author_username in c.blacklist:
         logger.info(f"Пользователь $YELLOW{author_username}$RESET в черном списке, игнорируем.")
         return

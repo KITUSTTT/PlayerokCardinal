@@ -358,11 +358,13 @@ class Cardinal(object):
             with open(path, "w", encoding="utf-8") as f:
                 config.write(f)
 
-    def send_message(self, chat_id: int, text: str, chat_name: str = ""):
+    def send_message(self, chat_id: str | int, text: str, chat_name: str = ""):
         """Отправляет сообщение в чат"""
         try:
-            logger.info(f"$CYANОтправка сообщения в чат $YELLOW{chat_name} (ID: {chat_id})$RESET: $CYAN{text[:50]}...$RESET")
-            self.account.send_message(str(chat_id), text)
+            # В PlayerokAPI chat_id это UUID (строка)
+            chat_id_str = str(chat_id)
+            logger.info(f"$CYANОтправка сообщения в чат $YELLOW{chat_name} (ID: {chat_id_str})$RESET: $CYAN{text[:50]}...$RESET")
+            self.account.send_message(chat_id_str, text)
             logger.info(f"$GREENСообщение отправлено в чат $YELLOW{chat_name}$RESET")
             return True
         except Exception as e:
