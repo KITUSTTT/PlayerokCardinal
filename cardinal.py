@@ -286,7 +286,7 @@ class Cardinal(object):
         events_handlers = {
             PlayerokAPI.enums.EventTypes.CHAT_INITIALIZED: self.chat_initialized_handlers,
             PlayerokAPI.enums.EventTypes.NEW_MESSAGE: self.new_message_handlers,
-            PlayerokAPI.enums.EventTypes.NEW_DEAL: self.new_order_handlers,
+            PlayerokAPI.enums.EventTypes.NEW_DEAL: self.new_deal_handlers,  # Исправлено: было new_order_handlers
             PlayerokAPI.enums.EventTypes.ITEM_PAID: self.item_paid_handlers,
             PlayerokAPI.enums.EventTypes.ITEM_SENT: self.item_sent_handlers,
             PlayerokAPI.enums.EventTypes.DEAL_CONFIRMED: self.deal_confirmed_handlers,

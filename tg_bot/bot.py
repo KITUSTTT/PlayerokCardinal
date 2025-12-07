@@ -573,7 +573,7 @@ class TGBot:
             self.bot.send_message(m.chat.id, _("logfile_sending"))
             try:
                 with open("logs/log.log", "rb") as f:
-                    self.bot.send_document(m.chat.id, InputFile(f, filename="log.log"),
+                    self.bot.send_document(m.chat.id, InputFile(f),
                                            caption=f'{_("gs_old_msg_mode").replace("{} ", "") if hasattr(self.cardinal, "old_mode_enabled") and self.cardinal.old_mode_enabled else ""}')
                     f.seek(0)
                     file_content = f.read().decode("utf-8", errors="ignore")

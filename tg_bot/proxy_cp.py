@@ -50,11 +50,22 @@ def init_proxy_cp(crd: Cardinal, *args):
             check = proxy_section.getboolean("check")
         
         if enable and check:
-            # Ждем 5 секунд перед первой проверкой, чтобы избежать конфликта с проверкой при инициализации
-            time.sleep(5)
+            # Ждем 10 секунд перед первой проверкой, чтобы избежать конфликта с проверкой при инициализации
+            time.sleep(10)
             while True:
                 for proxy in crd.proxy_dict.values():
                     try:
+                        # Пропускаем проверку если прокси уже используется в account
+                        if hasattr(crd, 'account') and crd.account and hasattr(crd.account, 'proxy'):
+                            current_proxy = crd.account.proxy
+                            if current_proxy:
+                                # Если это текущий прокси, пропускаем проверку (он уже проверен при инициализации)
+                                proxy_dict = {
+                                    "http": f"http://{proxy}",
+                                    "https": f"http://{proxy}"
+                                }
+                                if current_proxy == proxy_dict or (isinstance(current_proxy, str) and proxy in current_proxy):
+                                    continue
                         check_one_proxy(proxy)
                     except Exception as e:
                         logger.debug(f"Ошибка проверки прокси {proxy}: {e}")
