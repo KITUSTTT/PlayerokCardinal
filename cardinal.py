@@ -242,7 +242,8 @@ class Cardinal(object):
                         logger.error(f"$REDОшибка при регистрации обработчиков модуля $YELLOW{module.__name__}$RESET: $YELLOW{e}$RESET")
                         logger.debug("TRACEBACK", exc_info=True)
                 
-                # Вызываем pre_init обработчики (они регистрируют callback handlers в telegram боте)
+                # Вызываем pre_init обработчики встроенных модулей (они регистрируют callback handlers в telegram боте)
+                # Плагины будут вызваны позже, после их загрузки
                 self.run_handlers(self.pre_init_handlers, (self,))
             except Exception as e:
                 logger.warning(f"$YELLOWОшибка при загрузке Telegram модулей: $YELLOW{e}$RESET")
@@ -254,6 +255,10 @@ class Cardinal(object):
         # Загружаем плагины
         self.load_plugins()
         self.add_handlers()
+        
+        # Вызываем pre_init_handlers из плагинов (для регистрации callback handlers)
+        if self.telegram:
+            self.run_handlers(self.pre_init_handlers, (self,))
         
         logger.info("$GREENCardinal инициализирован успешно!$RESET")
         
@@ -271,13 +276,20 @@ class Cardinal(object):
     
     def run_handlers(self, handlers_list: list, args: tuple):
         """Вызывает список обработчиков с указанными аргументами"""
-        for handler in handlers_list:
+        logger.debug(f"Вызов run_handlers для {len(handlers_list)} обработчиков")
+        for i, handler in enumerate(handlers_list):
             try:
                 plugin_uuid = getattr(handler, "plugin_uuid", None)
+                handler_name = getattr(handler, "__name__", str(handler))
+                logger.debug(f"Обработчик {i+1}/{len(handlers_list)}: {handler_name}, plugin_uuid: {plugin_uuid}")
                 if plugin_uuid is None or (plugin_uuid in self.plugins and self.plugins[plugin_uuid].enabled):
+                    logger.debug(f"Вызов обработчика: {handler_name}")
                     handler(*args)
+                    logger.debug(f"Обработчик {handler_name} выполнен успешно")
+                else:
+                    logger.debug(f"Обработчик {handler_name} пропущен (плагин отключен или не найден)")
             except Exception as e:
-                logger.error(f"$REDОшибка в обработчике: $YELLOW{e}$RESET")
+                logger.error(f"$REDОшибка в обработчике {handler_name}: $YELLOW{e}$RESET")
                 logger.debug("TRACEBACK", exc_info=True)
 
     def process_events(self):
@@ -462,18 +474,27 @@ class Cardinal(object):
         :param plugin: модуль (плагин).
         :param uuid: UUID плагина (None для встроенных хэндлеров).
         """
+        plugin_name = getattr(plugin, "__name__", str(plugin))
+        logger.debug(f"Добавление обработчиков из: {plugin_name}, UUID: {uuid}")
+        handlers_count = 0
         for name in self.handler_bind_var_names:
             try:
                 functions = getattr(plugin, name)
+                if functions:
+                    logger.debug(f"Найдены обработчики {name}: {len(functions)} шт. в {plugin_name}")
+                    for func in functions:
+                        func.plugin_uuid = uuid
+                    self.handler_bind_var_names[name].extend(functions)
+                    handlers_count += len(functions)
             except AttributeError:
                 continue
-            for func in functions:
-                func.plugin_uuid = uuid
-            self.handler_bind_var_names[name].extend(functions)
         from locales.localizer import Localizer
         localizer = Localizer()
         _ = localizer.translate
-        logger.info(_("crd_handlers_registered", plugin.__name__))
+        if handlers_count > 0:
+            logger.info(_("crd_handlers_registered", plugin.__name__) + f" ({handlers_count} обработчиков)")
+        else:
+            logger.debug(f"В {plugin_name} не найдено обработчиков")
 
     def add_handlers(self):
         """

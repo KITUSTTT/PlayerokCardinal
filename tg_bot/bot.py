@@ -270,13 +270,17 @@ class TGBot:
         :param kwargs: аргументы для хэндлера.
         """
         bot_instance = self.bot
+        handler_name = getattr(handler, "__name__", str(handler))
+        logger.debug(f"Регистрация callback handler: {handler_name}")
 
         @bot_instance.callback_query_handler(func, **kwargs)
         def run_handler(call: CallbackQuery):
             try:
+                logger.debug(f"Callback получен: {call.data}, обработчик: {handler_name}")
                 handler(call)
+                logger.debug(f"Callback обработан успешно: {call.data}")
             except Exception as e:
-                logger.error(_("log_tg_handler_error"))
+                logger.error(_("log_tg_handler_error") + f" (handler: {handler_name}, data: {call.data})")
                 logger.debug("TRACEBACK", exc_info=True)
 
     def mdw_handler(self, handler, **kwargs):
