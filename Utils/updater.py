@@ -153,14 +153,26 @@ def get_releases(from_tag: str) -> list[Release] | None:
         
         result = []
         to_append = False
+        found_from_tag = False
+        
         for el in json_response[::-1]:
             tag_name = el.get("tag_name")
             logger.debug(f"Проверяю релиз: {tag_name}")
             
             if tag_name == from_tag:
+                found_from_tag = True
                 to_append = True
                 logger.info(_("upd_found_tag", from_tag))
-                continue  # Пропускаем сам тег from_tag, начинаем добавлять со следующего
+                # Включаем сам тег from_tag в результат
+                description = el.get("body", "")
+                sources = el.get("zipball_url")
+                if "#unskippable" in description:
+                    to_append = False
+                release = Release(tag_name, description, sources)
+                result.append(release)
+                if not to_append:
+                    break
+                continue  # Продолжаем искать релизы после этого тега
 
             if to_append:
                 description = el.get("body", "")
@@ -174,11 +186,36 @@ def get_releases(from_tag: str) -> list[Release] | None:
         
         if result:
             logger.info(_("upd_releases_found", len(result)))
-        else:
-            logger.warning(_("upd_no_releases_after_tag", from_tag))
-            # Если нет релизов после тега, значит текущая версия последняя
-            return None
-        return result
+            return result
+        
+        # Если результат пустой, но тег найден - возможно релиз еще не опубликован
+        # Проверяем, есть ли релиз для этого тега
+        if found_from_tag:
+            for el in json_response:
+                if el.get("tag_name") == from_tag:
+                    description = el.get("body", "")
+                    sources = el.get("zipball_url")
+                    release = Release(from_tag, description, sources)
+                    result.append(release)
+                    logger.info(_("upd_releases_found", len(result)))
+                    return result
+        
+        # Если тег не найден в релизах, но есть в тегах - создаем релиз из тега
+        logger.warning(_("upd_no_releases_after_tag", from_tag))
+        # Пытаемся получить zipball_url из тега напрямую
+        try:
+            tag_response = requests.get(f"https://api.github.com/repos/KITUSTTT/PlayerokCardinal/git/refs/tags/{from_tag}",
+                                       headers=HEADERS, timeout=10)
+            if tag_response.status_code == 200:
+                # Тег существует, создаем релиз из тега
+                sources = f"https://github.com/KITUSTTT/PlayerokCardinal/archive/refs/tags/{from_tag}.zip"
+                release = Release(from_tag, f"Release {from_tag}", sources)
+                logger.info(_("upd_releases_found", 1))
+                return [release]
+        except:
+            pass
+        
+        return None
     except:
         logger.debug("TRACEBACK", exc_info=True)
         return None
