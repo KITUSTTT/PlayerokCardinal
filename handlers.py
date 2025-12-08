@@ -6,6 +6,7 @@ if TYPE_CHECKING:
 
 from PlayerokAPI.listener.events import *
 from Utils import cardinal_tools
+import Utils.exceptions
 from locales.localizer import Localizer
 import logging
 import time
@@ -28,12 +29,17 @@ def log_msg_handler(c: Cardinal, event: NewMessageEvent):
     logger.info(f"$MAGENTA└───> $YELLOW{author}: $CYAN{message.text or ''}")
 
 def send_new_message_notification(c: Cardinal, event: NewMessageEvent):
-    """Отправляет уведомление о новом сообщении в Telegram"""
+    """Отправляет уведомление о новом сообщении в телеграм."""
     if c.telegram is None:
         return
     
     message = event.message
     chat = event.chat
+    chat_name = chat.name if hasattr(chat, 'name') else str(chat.id)
+    
+    # Проверяем черный список
+    if hasattr(c, 'bl_msg_notification_enabled') and c.bl_msg_notification_enabled and chat_name in c.blacklist:
+        return
     
     # Пропускаем сообщения от бота
     if hasattr(message, 'user') and message.user:
@@ -43,51 +49,40 @@ def send_new_message_notification(c: Cardinal, event: NewMessageEvent):
     # Получаем имя автора
     if hasattr(message, 'user') and message.user:
         author_username = message.user.username if hasattr(message.user, 'username') else str(message.user.id)
+        author_id = str(message.user.id) if hasattr(message.user, 'id') else ""
     else:
         author_username = "Unknown"
+        author_id = ""
     
-    # Получаем имя чата
-    chat_name = chat.name if hasattr(chat, 'name') else str(chat.id)
+    # Формируем текст уведомления в стиле FunPayCardinal
+    text = ""
+    # Определяем автора сообщения
+    if author_id == str(c.account.id):
+        author = f"<i><b>🫵 {_('you')}:</b></i> "
+    elif author_username in c.blacklist:
+        author = f"<i><b>🚷 {author_username}: </b></i>"
+    else:
+        author = f"<i><b>👤 {author_username}: </b></i>"
     
     # Формируем текст сообщения
-    message_text = message.text if message.text else "[Медиа]"
-    if len(message_text) > 100:
-        message_text = message_text[:97] + "..."
+    from tg_bot import utils
+    msg_text = f"<code>{utils.escape(message.text)}</code>" if message.text else \
+        f"<a href=\"{message.file.url if hasattr(message, 'file') and message.file and hasattr(message.file, 'url') else '#'}\">" \
+        f"{_('photo')}</a>" if hasattr(message, 'file') and message.file else "[Медиа]"
     
-    # Формируем текст уведомления
-    notification_text = f"💬 <b>Новое сообщение</b>\n\n"
-    notification_text += f"👤 <b>От:</b> {author_username}\n"
-    notification_text += f"💬 <b>Чат:</b> {chat_name}\n"
-    notification_text += f"📝 <b>Сообщение:</b> {message_text}"
+    text = f"{author}{msg_text}\n\n"
     
-    # Создаем клавиатуру с кнопками
-    from tg_bot.keyboards import reply
-    from telebot.types import InlineKeyboardMarkup as K, InlineKeyboardButton as B
-    from tg_bot import CBT
-    from locales.localizer import Localizer
-    
-    localizer = Localizer()
-    _ = localizer.translate
-    
-    # Создаем клавиатуру вручную, так как reply ожидает int, а у нас UUID
-    keyboard = K()
-    keyboard.row(
-        B(_("msg_reply2"), None, f"{CBT.SEND_FP_MESSAGE}:{chat.id}:{author_username}"),
-        B(_("msg_templates"), None, f"{CBT.TMPLT_LIST_ANS_MODE}:0:{chat.id}:{author_username}:1:1")
-    )
-    keyboard.row(B(_("msg_more"), None, f"{CBT.EXTEND_CHAT}:{chat.id}:{author_username}"))
-    keyboard.row(B(f"🌐 {author_username}", url=f"https://playerok.com/chats/{chat.id}"))
-    
-    # Отправляем уведомление
+    # Создаем клавиатуру
+    from tg_bot import keyboards
     from tg_bot.utils import NotificationTypes
-    c.telegram.send_notification(
-        text=notification_text,
-        keyboard=keyboard,
-        notification_type=NotificationTypes.new_message
-    )
+    kb = keyboards.reply(chat.id, chat_name, extend=True)
+    
+    from threading import Thread
+    Thread(target=c.telegram.send_notification, args=(text, kb, NotificationTypes.new_message),
+           daemon=True).start()
 
 def send_response_handler(c: Cardinal, event: NewMessageEvent):
-    """Отправляет автоответ на сообщение"""
+    """Проверяет, является ли сообщение командой, и если да, отправляет ответ на данную команду."""
     if not c.autoresponse_enabled:
         return
     
@@ -104,7 +99,8 @@ def send_response_handler(c: Cardinal, event: NewMessageEvent):
         author_username = message.user.username if hasattr(message.user, 'username') else str(message.user.id)
     else:
         author_username = "Unknown"
-    if author_username in c.blacklist:
+    
+    if hasattr(c, 'bl_response_enabled') and c.bl_response_enabled and author_username in c.blacklist:
         logger.info(f"Пользователь $YELLOW{author_username}$RESET в черном списке, игнорируем.")
         return
     
@@ -113,10 +109,56 @@ def send_response_handler(c: Cardinal, event: NewMessageEvent):
     
     chat_name = chat.name if hasattr(chat, 'name') else str(chat.id)
     logger.info(_("log_new_cmd", mtext, chat_name, chat.id))
-    response = c.AR_CFG[mtext]["response"]
-    # Форматируем переменные в ответе
-    response = cardinal_tools.format_msg_text(response, message)
-    c.send_message(chat.id, response, chat_name)
+    
+    # Отправляем ответ на команду
+    command_config = c.AR_CFG[mtext]
+    response = command_config.get("response", "")
+    if response:
+        # Форматируем переменные в ответе
+        response = cardinal_tools.format_msg_text(response, message)
+        from threading import Thread
+        Thread(target=c.send_message, args=(chat.id, response, chat_name), daemon=True).start()
+
+def send_command_notification_handler(c: Cardinal, event: NewMessageEvent):
+    """Отправляет уведомление о введенной команде в телеграм."""
+    if not c.telegram:
+        return
+    
+    message = event.message
+    chat = event.chat
+    chat_name = chat.name if hasattr(chat, 'name') else str(chat.id)
+    
+    # В PlayerokAPI используется message.user, а не message.author
+    if hasattr(message, 'user') and message.user:
+        author_username = message.user.username if hasattr(message.user, 'username') else str(message.user.id)
+    else:
+        author_username = "Unknown"
+    
+    # Проверяем черный список
+    if hasattr(c, 'bl_cmd_notification_enabled') and c.bl_cmd_notification_enabled and author_username in c.blacklist:
+        return
+    
+    command = message.text.strip().lower() if message.text else ""
+    if command not in c.AR_CFG:
+        return
+    
+    # Проверяем, включены ли уведомления для команды
+    command_config = c.AR_CFG[command]
+    if not command_config.get("telegramNotification", "0") == "1":
+        return
+    
+    # Формируем текст уведомления в стиле FunPayCardinal
+    from tg_bot import utils, keyboards
+    from tg_bot.utils import NotificationTypes
+    from threading import Thread
+    
+    if not command_config.get("notificationText"):
+        text = f"🧑‍💻 Пользователь <b><i>{author_username}</i></b> ввел команду <code>{utils.escape(command)}</code>."
+    else:
+        text = cardinal_tools.format_msg_text(command_config["notificationText"], message)
+    
+    Thread(target=c.telegram.send_notification, args=(text, keyboards.reply(chat.id, chat_name),
+                                                      NotificationTypes.command), daemon=True).start()
 
 def auto_delivery_handler(c: Cardinal, event: NewDealEvent | ItemPaidEvent):
     """Обрабатывает автовыдачу для нового заказа"""
@@ -140,42 +182,83 @@ def auto_delivery_handler(c: Cardinal, event: NewDealEvent | ItemPaidEvent):
         logger.warning(f"Не удалось определить lot_id для заказа $YELLOW#{deal.id}$RESET")
         return
     
-    for delivery_config in c.AD_CFG:
-        if delivery_config.get("lot_id") == lot_id:
-            logger.info(f"Найдена конфигурация автовыдачи для лота $YELLOW{lot_id}$RESET")
-            
-            goods_file = delivery_config.get("goods_file")
-            response = delivery_config.get("response", "")
-            
-            if not goods_file:
-                logger.error(f"Не указан файл товаров для лота $YELLOW{lot_id}$RESET")
-                continue
-            
-            try:
-                with open(goods_file, "r", encoding="utf-8") as f:
-                    lines = f.readlines()
-                
-                if not lines:
-                    logger.error(f"Файл $YELLOW{goods_file}$RESET пуст!")
-                    continue
-                
-                product = lines[0].strip()
-                
-                with open(goods_file, "w", encoding="utf-8") as f:
-                    f.writelines(lines[1:])
-                
-                response = response.replace("$product", product)
-                # Форматируем переменные в ответе автовыдачи
-                response = cardinal_tools.format_order_text(response, deal)
-                # В PlayerokAPI для ItemDeal используется user, а не buyer
-                buyer_name = deal.user.username if hasattr(deal, 'user') and hasattr(deal.user, 'username') else ""
-                c.send_message(chat.id, response, buyer_name)
-                
-                logger.info(f"Товар для заказа $YELLOW#{deal.id}$RESET выдан: $CYAN{product}$RESET")
-            except Exception as e:
-                logger.error(f"Ошибка при автовыдаче: $YELLOW{e}$RESET")
-            
+    # Ищем конфигурацию автовыдачи для этого лота
+    delivery_config = None
+    for config in c.AD_CFG:
+        if config.get("lot_id") == lot_id:
+            delivery_config = config
             break
+    
+    if not delivery_config:
+        logger.debug(f"Конфигурация автовыдачи для лота $YELLOW{lot_id}$RESET не найдена")
+        return
+    
+    logger.info(f"Найдена конфигурация автовыдачи для лота $YELLOW{lot_id}$RESET")
+    
+    goods_file = delivery_config.get("goods_file")
+    response = delivery_config.get("response", "")
+    
+    if not goods_file:
+        logger.error(f"Не указан файл товаров для лота $YELLOW{lot_id}$RESET")
+        return
+    
+    # Получаем количество товаров для выдачи
+    amount = 1
+    # В PlayerokAPI нет поля amount в ItemDeal, используем 1
+    
+    # Получаем товары из файла
+    try:
+        result = cardinal_tools.get_products(goods_file, amount)
+        if result is None:
+            logger.error(f"Файл $YELLOW{goods_file}$RESET пуст или произошла ошибка при чтении!")
+            return
+        products, goods_left = result
+    except Utils.exceptions.NoProductsError:
+        logger.error(f"В файле $YELLOW{goods_file}$RESET нет товаров!")
+        return
+    except Utils.exceptions.NotEnoughProductsError as e:
+        logger.error(f"В файле $YELLOW{goods_file}$RESET недостаточно товаров: {e}")
+        return
+    except Exception as e:
+        logger.error(f"Произошла ошибка при получении товаров для заказа $YELLOW#{deal.id}$RESET: $YELLOW{e}$RESET")
+        logger.debug("TRACEBACK", exc_info=True)
+        return
+    
+    # Форматируем текст ответа
+    delivery_text = cardinal_tools.format_order_text(response, deal)
+    # Заменяем $product на товары
+    delivery_text = delivery_text.replace("$product", "\n".join(products).replace("\\n", "\n"))
+    
+    # Отправляем сообщение с товаром
+    buyer_name = deal.user.username if hasattr(deal, 'user') and hasattr(deal.user, 'username') else str(deal.user.id) if hasattr(deal, 'user') and deal.user else "Unknown"
+    result = c.send_message(chat.id, delivery_text, buyer_name)
+    
+    if not result:
+        logger.error(f"Не удалось отправить товар для ордера $YELLOW#{deal.id}$RESET.")
+        # Возвращаем товары обратно в файл
+        if products:
+            cardinal_tools.add_products(goods_file, products, at_zero_position=True)
+        # Отправляем уведомление об ошибке
+        if c.telegram:
+            from tg_bot.utils import NotificationTypes
+            from threading import Thread
+            error_text = f"❌ <code>Не удалось отправить товар для ордера {deal.id}.</code>"
+            Thread(target=c.telegram.send_notification, args=(error_text, None, NotificationTypes.delivery),
+                   daemon=True).start()
+    else:
+        logger.info(f"Товар для заказа $YELLOW#{deal.id}$RESET выдан: $CYAN{', '.join(products)}$RESET")
+        # Отправляем уведомление об успешной выдаче
+        if c.telegram:
+            from tg_bot import utils
+            from tg_bot.utils import NotificationTypes
+            from threading import Thread
+            amount = "<b>∞</b>" if goods_left == -1 else f"<code>{goods_left}</code>"
+            text = f"""✅ Успешно выдал товар для ордера <code>{deal.id}</code>.\n
+🛒 <b><i>Товар:</i></b>
+<code>{utils.escape(delivery_text)}</code>\n
+📋 <b><i>Осталось товаров: </i></b>{amount}"""
+            Thread(target=c.telegram.send_notification, args=(text, None, NotificationTypes.delivery),
+                   daemon=True).start()
 
 def chat_initialized_handler(c: Cardinal, event: ChatInitializedEvent):
     """Обрабатывает инициализацию чата"""
@@ -202,8 +285,8 @@ def create_deal_keyboard(chat_id: str, username: str, deal_id: str):
     return keyboard
 
 def send_new_deal_notification(c: Cardinal, event: NewDealEvent):
-    """Отправляет уведомление о новой сделке в Telegram"""
-    if c.telegram is None:
+    """Отправляет уведомления о новой сделке в телеграм."""
+    if not c.telegram:
         return
     
     deal = event.deal
@@ -212,26 +295,51 @@ def send_new_deal_notification(c: Cardinal, event: NewDealEvent):
     # Получаем имя покупателя
     buyer_username = deal.user.username if hasattr(deal, 'user') and hasattr(deal.user, 'username') else str(deal.user.id) if hasattr(deal, 'user') and deal.user else "Unknown"
     
-    # Получаем имя товара
+    # Проверяем черный список
+    if buyer_username in c.blacklist and hasattr(c.MAIN_CFG, 'get') and isinstance(c.MAIN_CFG.get("BlockList"), dict) and c.MAIN_CFG.get("BlockList", {}).get("blockNewOrderNotification") == "1":
+        return
+    
+    # Получаем имя товара и категорию
     item_name = deal.item.name if hasattr(deal, 'item') and hasattr(deal.item, 'name') else "Неизвестный товар"
+    subcategory_name = ""
+    if hasattr(deal, 'item') and deal.item and hasattr(deal.item, 'category') and deal.item.category:
+        subcategory_name = deal.item.category.name if hasattr(deal.item.category, 'name') else ""
     
-    # Получаем цену
+    # Получаем цену (в копейках, делим на 100)
     price = deal.item.price if hasattr(deal, 'item') and hasattr(deal.item, 'price') else 0
+    price_rub = price / 100 if price else 0
     
-    notification_text = f"🛒 <b>Новая сделка!</b>\n\n"
-    notification_text += f"👤 <b>Покупатель:</b> {buyer_username}\n"
-    notification_text += f"📦 <b>Товар:</b> {item_name}\n"
-    notification_text += f"💰 <b>Цена:</b> {price / 100 if price else 0:.2f} RUB\n"
-    notification_text += f"🆔 <b>ID сделки:</b> <code>{deal.id}</code>"
+    # Определяем информацию о доставке
+    delivery_config = None
+    lot_id = str(deal.item.id) if hasattr(deal, 'item') and deal.item and hasattr(deal.item, 'id') else None
+    if lot_id:
+        for config in c.AD_CFG:
+            if config.get("lot_id") == lot_id:
+                delivery_config = config
+                break
+    
+    if not delivery_config:
+        delivery_info = _("ntfc_new_order_not_in_cfg")
+    else:
+        if not c.autodelivery_enabled:
+            delivery_info = _("ntfc_new_order_ad_disabled")
+        else:
+            delivery_info = _("ntfc_new_order_will_be_delivered")
+    
+    # Формируем текст уведомления в стиле FunPayCardinal
+    from tg_bot import utils
+    description = f"{utils.escape(item_name)}"
+    if subcategory_name:
+        description += f", {utils.escape(subcategory_name)}"
+    
+    text = _("ntfc_new_order", description, buyer_username, f"{price_rub:.2f} RUB", deal.id, delivery_info)
     
     keyboard = create_deal_keyboard(str(chat.id), buyer_username, deal.id)
     
     from tg_bot.utils import NotificationTypes
-    c.telegram.send_notification(
-        text=notification_text,
-        keyboard=keyboard,
-        notification_type=NotificationTypes.new_order
-    )
+    from threading import Thread
+    Thread(target=c.telegram.send_notification, args=(text, keyboard, NotificationTypes.new_order),
+           daemon=True).start()
 
 def send_item_paid_notification(c: Cardinal, event: ItemPaidEvent):
     """Отправляет уведомление об оплате товара в Telegram"""
@@ -254,11 +362,9 @@ def send_item_paid_notification(c: Cardinal, event: ItemPaidEvent):
     keyboard = create_deal_keyboard(str(chat.id), buyer_username, deal.id)
     
     from tg_bot.utils import NotificationTypes
-    c.telegram.send_notification(
-        text=notification_text,
-        keyboard=keyboard,
-        notification_type=NotificationTypes.new_order
-    )
+    from threading import Thread
+    Thread(target=c.telegram.send_notification, args=(notification_text, keyboard, NotificationTypes.new_order),
+           daemon=True).start()
 
 def send_item_sent_notification(c: Cardinal, event: ItemSentEvent):
     """Отправляет уведомление об отправке товара в Telegram"""
@@ -279,11 +385,9 @@ def send_item_sent_notification(c: Cardinal, event: ItemSentEvent):
     keyboard = create_deal_keyboard(str(chat.id), buyer_username, deal.id)
     
     from tg_bot.utils import NotificationTypes
-    c.telegram.send_notification(
-        text=notification_text,
-        keyboard=keyboard,
-        notification_type=NotificationTypes.delivery
-    )
+    from threading import Thread
+    Thread(target=c.telegram.send_notification, args=(notification_text, keyboard, NotificationTypes.delivery),
+           daemon=True).start()
 
 def send_deal_confirmed_notification(c: Cardinal, event: DealConfirmedEvent):
     """Отправляет уведомление о подтверждении сделки в Telegram"""
@@ -306,11 +410,9 @@ def send_deal_confirmed_notification(c: Cardinal, event: DealConfirmedEvent):
     keyboard = create_deal_keyboard(str(chat.id), buyer_username, deal.id)
     
     from tg_bot.utils import NotificationTypes
-    c.telegram.send_notification(
-        text=notification_text,
-        keyboard=keyboard,
-        notification_type=NotificationTypes.order_confirmed
-    )
+    from threading import Thread
+    Thread(target=c.telegram.send_notification, args=(notification_text, keyboard, NotificationTypes.order_confirmed),
+           daemon=True).start()
 
 def send_deal_rolled_back_notification(c: Cardinal, event: DealRolledBackEvent):
     """Отправляет уведомление о возврате сделки в Telegram"""
@@ -331,11 +433,9 @@ def send_deal_rolled_back_notification(c: Cardinal, event: DealRolledBackEvent):
     keyboard = create_deal_keyboard(str(chat.id), buyer_username, deal.id)
     
     from tg_bot.utils import NotificationTypes
-    c.telegram.send_notification(
-        text=notification_text,
-        keyboard=keyboard,
-        notification_type=NotificationTypes.other
-    )
+    from threading import Thread
+    Thread(target=c.telegram.send_notification, args=(notification_text, keyboard, NotificationTypes.other),
+           daemon=True).start()
 
 def send_new_review_notification(c: Cardinal, event: NewReviewEvent):
     """Отправляет уведомление о новом отзыве в Telegram"""
@@ -370,11 +470,9 @@ def send_new_review_notification(c: Cardinal, event: NewReviewEvent):
     keyboard = create_deal_keyboard(str(chat.id), buyer_username, deal.id)
     
     from tg_bot.utils import NotificationTypes
-    c.telegram.send_notification(
-        text=notification_text,
-        keyboard=keyboard,
-        notification_type=NotificationTypes.review
-    )
+    from threading import Thread
+    Thread(target=c.telegram.send_notification, args=(notification_text, keyboard, NotificationTypes.review),
+           daemon=True).start()
 
 def send_deal_has_problem_notification(c: Cardinal, event: DealHasProblemEvent):
     """Отправляет уведомление о проблеме в сделке в Telegram"""
@@ -395,11 +493,9 @@ def send_deal_has_problem_notification(c: Cardinal, event: DealHasProblemEvent):
     keyboard = create_deal_keyboard(str(chat.id), buyer_username, deal.id)
     
     from tg_bot.utils import NotificationTypes
-    c.telegram.send_notification(
-        text=notification_text,
-        keyboard=keyboard,
-        notification_type=NotificationTypes.critical
-    )
+    from threading import Thread
+    Thread(target=c.telegram.send_notification, args=(notification_text, keyboard, NotificationTypes.critical),
+           daemon=True).start()
 
 def send_deal_problem_resolved_notification(c: Cardinal, event: DealProblemResolvedEvent):
     """Отправляет уведомление о решении проблемы в сделке в Telegram"""
@@ -420,11 +516,9 @@ def send_deal_problem_resolved_notification(c: Cardinal, event: DealProblemResol
     keyboard = create_deal_keyboard(str(chat.id), buyer_username, deal.id)
     
     from tg_bot.utils import NotificationTypes
-    c.telegram.send_notification(
-        text=notification_text,
-        keyboard=keyboard,
-        notification_type=NotificationTypes.other
-    )
+    from threading import Thread
+    Thread(target=c.telegram.send_notification, args=(notification_text, keyboard, NotificationTypes.other),
+           daemon=True).start()
 
 def send_deal_status_changed_notification(c: Cardinal, event: DealStatusChangedEvent):
     """Отправляет уведомление об изменении статуса сделки в Telegram"""
@@ -448,11 +542,9 @@ def send_deal_status_changed_notification(c: Cardinal, event: DealStatusChangedE
     keyboard = create_deal_keyboard(str(chat.id), buyer_username, deal.id)
     
     from tg_bot.utils import NotificationTypes
-    c.telegram.send_notification(
-        text=notification_text,
-        keyboard=keyboard,
-        notification_type=NotificationTypes.other
-    )
+    from threading import Thread
+    Thread(target=c.telegram.send_notification, args=(notification_text, keyboard, NotificationTypes.other),
+           daemon=True).start()
 
 def send_bot_started_notification_handler(c: Cardinal, *args):
     """
@@ -506,6 +598,7 @@ def register_handlers(c: Cardinal):
     c.new_message_handlers.append(log_msg_handler)
     c.new_message_handlers.append(send_new_message_notification)
     c.new_message_handlers.append(send_response_handler)
+    c.new_message_handlers.append(send_command_notification_handler)
     
     # Уведомления о сделках
     c.new_deal_handlers.append(send_new_deal_notification)

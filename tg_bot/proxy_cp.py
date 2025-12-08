@@ -37,8 +37,11 @@ def init_proxy_cp(crd: Cardinal, *args):
                 "https": f"http://{proxy}"
             }
             pr_dict[proxy] = check_proxy(d)
-        except:
-            pass
+        except Exception as e:
+            # Не логируем ошибки проверки прокси, чтобы не спамить логи
+            # Только в режиме отладки
+            logger.debug(f"Ошибка проверки прокси {proxy}: {e}")
+            pr_dict[proxy] = False
 
     def check_proxies():
         proxy_section = crd.MAIN_CFG.get("Proxy", {})
@@ -68,6 +71,7 @@ def init_proxy_cp(crd: Cardinal, *args):
                                     continue
                         check_one_proxy(proxy)
                     except Exception as e:
+                        # Не логируем ошибки проверки прокси в фоне, чтобы не спамить логи
                         logger.debug(f"Ошибка проверки прокси {proxy}: {e}")
                         pass
                 time.sleep(3600)

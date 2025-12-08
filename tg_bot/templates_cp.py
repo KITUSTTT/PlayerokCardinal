@@ -58,7 +58,12 @@ def init_templates_cp(cardinal: Cardinal, *args):
         Открывает список существующих шаблонов ответов (answer_mode).
         """
         split = c.data.split(":")
-        offset, node_id, username, prev_page, extra = int(split[1]), int(split[2]), split[3], int(split[4]), split[5:]
+        # В PlayerokAPI node_id это UUID (строка), а не int
+        offset = int(split[1])
+        node_id = str(split[2])  # UUID, не преобразуем в int
+        username = split[3]
+        prev_page = int(split[4])
+        extra = split[5:]
         bot.edit_message_reply_markup(c.message.chat.id, c.message.id,
                                       reply_markup=keyboards.templates_list_ans_mode(cardinal, offset, node_id,
                                                                                      username, prev_page, extra))
@@ -124,8 +129,12 @@ def init_templates_cp(cardinal: Cardinal, *args):
 
     def send_template(c: CallbackQuery):
         split = c.data.split(":")
-        template_index, node_id, username, prev_page, extra = (int(split[1]), int(split[2]), split[3], int(split[4]),
-                                                               split[5:])
+        # В PlayerokAPI node_id это UUID (строка), а не int
+        template_index = int(split[1])
+        node_id = str(split[2])  # UUID, не преобразуем в int
+        username = split[3]
+        prev_page = int(split[4])
+        extra = split[5:]
 
         if template_index > len(tg.answer_templates) - 1:
             bot.send_message(c.message.chat.id, _("tmplt_not_found_err", template_index),
@@ -144,7 +153,7 @@ def init_templates_cp(cardinal: Cardinal, *args):
             return
 
         text = tg.answer_templates[template_index].replace("$username", safe_text(username))
-        result = cardinal.send_message(node_id, text, username, watermark=False)
+        result = cardinal.send_message(node_id, text, username)
 
         if prev_page == 3:
             bot.answer_callback_query(c.id, _("msg_sent_short") if result else _("msg_sending_error_short"))

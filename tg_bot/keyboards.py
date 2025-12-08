@@ -579,50 +579,54 @@ def edit_lot(c: Cardinal, lot_number: int, offset: int) -> K:
 
 
 # Прочее
-def new_order(order_id: str, username: str, node_id: int,
+def new_order(order_id: str, username: str, node_id: str | int,
               confirmation: bool = False, no_refund: bool = False) -> K:
     """
     Генерирует клавиатуру для сообщения о новом заказе.
 
     :param order_id: ID заказа (без #).
     :param username: никнейм покупателя.
-    :param node_id: ID чата с покупателем.
+    :param node_id: ID чата с покупателем (UUID строка в PlayerokAPI).
     :param confirmation: заменить ли кнопку "Вернуть деньги" на подтверждение "Да" / "Нет"?
     :param no_refund: убрать ли кнопки, связанные с возвратом денег?
 
     :return: объект клавиатуры для сообщения о новом заказе.
     """
+    # В PlayerokAPI node_id это UUID (строка)
+    node_id_str = str(node_id)
     kb = K()
     if not no_refund:
         if confirmation:
-            kb.row(B(_("gl_yes"), None, f"{CBT.REFUND_CONFIRMED}:{order_id}:{node_id}:{username}"),
-                   B(_("gl_no"), None, f"{CBT.REFUND_CANCELLED}:{order_id}:{node_id}:{username}"))
+            kb.row(B(_("gl_yes"), None, f"{CBT.REFUND_CONFIRMED}:{order_id}:{node_id_str}:{username}"),
+                   B(_("gl_no"), None, f"{CBT.REFUND_CANCELLED}:{order_id}:{node_id_str}:{username}"))
         else:
-            kb.add(B(_("ord_refund"), None, f"{CBT.REQUEST_REFUND}:{order_id}:{node_id}:{username}"))
+            kb.add(B(_("ord_refund"), None, f"{CBT.REQUEST_REFUND}:{order_id}:{node_id_str}:{username}"))
 
-    kb.add(B(_("ord_open"), url=f"https://funpay.com/orders/{order_id}/")) \
-        .row(B(_("ord_answer"), None, f"{CBT.SEND_FP_MESSAGE}:{node_id}:{username}"),
+    kb.add(B(_("ord_open"), url=f"https://playerok.com/deals/{order_id}/")) \
+        .row(B(_("ord_answer"), None, f"{CBT.SEND_FP_MESSAGE}:{node_id_str}:{username}"),
              B(_("ord_templates"), None,
-               f"{CBT.TMPLT_LIST_ANS_MODE}:0:{node_id}:{username}:2:{order_id}:{1 if no_refund else 0}"))
+               f"{CBT.TMPLT_LIST_ANS_MODE}:0:{node_id_str}:{username}:2:{order_id}:{1 if no_refund else 0}"))
     return kb
 
 
-def reply(node_id: int, username: str, again: bool = False, extend: bool = False) -> K:
+def reply(node_id: str | int, username: str, again: bool = False, extend: bool = False) -> K:
     """
-    Генерирует клавиатуру для отправки сообщения в чат FunPay.
+    Генерирует клавиатуру для отправки сообщения в чат Playerok.
 
-    :param node_id: ID переписки, в которую нужно отправить сообщение.
+    :param node_id: ID переписки (UUID строка в PlayerokAPI), в которую нужно отправить сообщение.
     :param username: никнейм пользователя, с которым ведется переписка.
     :param again: заменить текст "Отправить" на "Отправить еще"?
     :param extend: добавить ли кнопку "Расширить"?
 
-    :return: объект клавиатуры для отправки сообщения в чат FunPay.
+    :return: объект клавиатуры для отправки сообщения в чат Playerok.
     """
-    bts = [B(_("msg_reply2") if again else _("msg_reply"), None, f"{CBT.SEND_FP_MESSAGE}:{node_id}:{username}"),
-           B(_("msg_templates"), None, f"{CBT.TMPLT_LIST_ANS_MODE}:0:{node_id}:{username}:{int(again)}:{int(extend)}")]
+    # В PlayerokAPI node_id это UUID (строка)
+    node_id_str = str(node_id)
+    bts = [B(_("msg_reply2") if again else _("msg_reply"), None, f"{CBT.SEND_FP_MESSAGE}:{node_id_str}:{username}"),
+           B(_("msg_templates"), None, f"{CBT.TMPLT_LIST_ANS_MODE}:0:{node_id_str}:{username}:{int(again)}:{int(extend)}")]
     if extend:
-        bts.append(B(_("msg_more"), None, f"{CBT.EXTEND_CHAT}:{node_id}:{username}"))
-    bts.append(B(f"🌐 {username}", url=f"https://funpay.com/chat/?node={node_id}"))
+        bts.append(B(_("msg_more"), None, f"{CBT.EXTEND_CHAT}:{node_id_str}:{username}"))
+    bts.append(B(f"🌐 {username}", url=f"https://playerok.com/chats/{node_id_str}"))
     kb = K() \
         .row(*bts)
     return kb

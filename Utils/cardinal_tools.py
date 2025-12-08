@@ -63,8 +63,14 @@ def check_proxy(proxy: dict) -> bool:
     try:
         response = requests.get("https://api.ipify.org?format=json", proxies=proxy, timeout=10)
         ip_address = response.json().get("ip", response.content.decode())
-    except:
+    except requests.exceptions.ProxyError as e:
+        # Не логируем ProxyError как ошибку, только в режиме отладки
+        logger.debug(f"ProxyError при проверке прокси: {e}")
+        logger.debug("TRACEBACK", exc_info=True)
+        return False
+    except Exception as e:
         logger.error(_("crd_proxy_err"))
+        logger.debug(f"Ошибка проверки прокси: {e}")
         logger.debug("TRACEBACK", exc_info=True)
         return False
     logger.info(_("crd_proxy_success", ip_address))

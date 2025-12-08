@@ -264,17 +264,17 @@ proxy_adding_error = "❌ There was an error while adding the proxy."
 proxy_undeletable = "❌ This proxy cannot be deleted as it is currently in use."
 
 act_edit_watermark = "Enter a new watermark text. For example:\n{}\n" \
-                     "<code>𝓕𝓾𝓷𝓟𝓪𝔂 𝓒𝓪𝓻𝓭𝓲𝓷𝓪𝓵</code>\n" \
-                     "<code>𝔽𝕦𝕟ℙ𝕒𝕪 ℂ𝕒𝕣𝕕𝕚𝕟𝕒𝕝</code>\n<code>ＦｕｎＰａｙ Ｃａｒｄｉｎａｌ</code>\n" \
-                     "<code>ꜰᴜɴᴘᴀʏ ᴄᴀʀᴅɪɴᴀʟ</code>\n<code>🄵🅄🄽🄿🄰🅈 🄲🄰🅁🄳🄸🄽🄰🄻</code>\n" \
-                     "<code>ⒻⓤⓝⓅⓐⓨ Ⓒⓐⓡⓓⓘⓝⓐⓛ</code>\n<code>𝐅𝐮𝐧𝐏𝐚𝐲 𝐂𝐚𝐫𝐝𝐢𝐧𝐚𝐥</code>\n" \
-                     "<code>𝗙𝘂𝗻𝗣𝗮𝘆 𝗖𝗮𝗿𝗱𝗶𝗻𝗮𝗹</code>\n<code>𝘍𝘶𝘯𝘗𝘢𝘺 𝘊𝘢𝘳𝘥𝘪𝘯𝘢𝘭</code>\n" \
-                     "<code>𝙁𝙪𝙣𝙋𝙖𝙮 𝘾𝙖𝙧𝙙𝙞𝙣𝙖𝙡</code>\n<code>𝙵𝚞𝚗𝙿𝚊𝚢 𝙲𝚊𝚛𝚍𝚒𝚗𝚊𝚕</code>\n" \
-                     "<code>ᖴᑌᑎᑭᗩY ᑕᗩᖇᗪIᑎᗩᒪ</code>\n" \
-                     "<code>FunPay Cardinal</code>\n<code>[FunPay / Cardinal]</code>\n" \
-                     "<code>🤖</code>\n<code>🐦</code>\n\n" \
-                     "You can tap on the examples to copy and edit them to your liking.\nNote that on FunPay, the emoji " \
-                     "🐦 looks different than in Telegram." \
+                     "<code>𝓟𝓵𝓪𝔂𝓮𝓻𝓸𝓴 𝓒𝓪𝓻𝓭𝓲𝓷𝓪𝓵</code>\n" \
+                     "<code>ℙ𝕝𝕒𝕪𝕖𝕣𝕠𝕜 ℂ𝕒𝕣𝕕𝕚𝕟𝕒𝕝</code>\n<code>Ｐｌａｙｅｒｏｋ Ｃａｒｄｉｎａｌ</code>\n" \
+                     "<code>ᴘʟᴀʏᴇʀᴏᴋ ᴄᴀʀᴅɪɴᴀʟ</code>\n<code>🅿🅻🅰🆈🅴🆁🅾🅺 🅲🅰🆁🅳🅸🅽🅰🅻</code>\n" \
+                     "<code>Ⓟⓛⓐⓨⓔⓡⓞⓚ Ⓒⓐⓡⓓⓘⓝⓐⓛ</code>\n<code>𝐏𝐥𝐚𝐲𝐞𝐫𝐨𝐤 𝐂𝐚𝐫𝐝𝐢𝐧𝐚𝐥</code>\n" \
+                     "<code>𝗣𝗹𝗮𝘆𝗲𝗿𝗼𝗸 𝗖𝗮𝗿𝗱𝗶𝗻𝗮𝗹</code>\n<code>𝘗𝘭𝘢𝘺𝘦𝘳𝘰𝘬 𝘊𝘢𝘳𝘥𝘪𝘯𝘢𝘭</code>\n" \
+                     "<code>𝙋𝙡𝙖𝙮𝙚𝙧𝙤𝙠 𝘾𝙖𝙧𝙙𝙞𝙣𝙖𝙡</code>\n<code>𝙿𝚕𝚊𝚢𝚎𝚛𝚘𝚔 𝙲𝚊𝚛𝚍𝚒𝚗𝚊𝚕</code>\n" \
+                     "<code>ᑭᒪᗩYᗴᖇOᖴ ᑕᗩᖇᗪIᑎᗩᒪ</code>\n" \
+                     "<code>Playerok Cardinal</code>\n<code>[Playerok / Cardinal]</code>\n" \
+                     "<code>🤖</code>\n<code>🎮</code>\n\n" \
+                     "You can tap on the examples to copy and edit them to your liking.\nNote that on Playerok, the emoji " \
+                     "🎮 looks different than in Telegram." \
                      "\n\nTo remove the watermark, send <code>-</code>."
 watermark_changed = "✅ The message watermark has been changed."
 watermark_deleted = "✅ The message watermark has been deleted."

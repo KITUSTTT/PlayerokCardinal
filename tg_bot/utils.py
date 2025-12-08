@@ -162,10 +162,10 @@ def has_brand_mark(watermark: str) -> bool:
     """
     simplified = (unicodedata.normalize("NFKD", watermark)
                   .encode("ascii", "ignore").decode("ascii").lower())
-    ascii_hits = any(kw in simplified for kw in ("cardinal", "fpc"))
-    raw_hits = any(kw in watermark.lower() for kw in ("кардинал", "🐦", "ᴄᴀʀᴅɪɴᴀʟ"))
+    ascii_hits = any(kw in simplified for kw in ("cardinal", "playerok", "poc"))
+    raw_hits = any(kw in watermark.lower() for kw in ("кардинал", "плейерок", "🎮", "ᴄᴀʀᴅɪɴᴀʟ", "ᴘʟᴀʏᴇʀᴏᴋ"))
 
-    return ascii_hits or raw_hits or "ᑕᗩᖇᗪIᑎᗩᒪ" in watermark
+    return ascii_hits or raw_hits or "ᑕᗩᖇᗪIᑎᗩᒪ" in watermark or "ᑭᒪᗩYᗴᖇOᖴ" in watermark
 
 
 def split_by_limit(list_of_str: list[str], limit: int = 4096):

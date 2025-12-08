@@ -775,10 +775,11 @@ class TGBot:
     # Чат FunPay
     def act_send_funpay_message(self, c: CallbackQuery):
         """
-        Активирует режим ввода сообщения для отправки его в чат FunPay.
+        Активирует режим ввода сообщения для отправки его в чат Playerok.
         """
         split = c.data.split(":")
-        node_id = int(split[1])
+        # В PlayerokAPI node_id это UUID (строка), а не int
+        node_id = str(split[1])
         try:
             username = split[2]
         except IndexError:
@@ -790,19 +791,33 @@ class TGBot:
 
     def send_funpay_message(self, message: Message):
         """
-        Отправляет сообщение в чат FunPay.
+        Отправляет сообщение в чат Playerok.
         """
         data = self.get_state(message.chat.id, message.from_user.id)["data"]
         node_id, username = data["node_id"], data["username"]
         self.clear_state(message.chat.id, message.from_user.id, True)
         response_text = message.text.strip()
-        result = self.cardinal.send_message(node_id, response_text, username, watermark=False)
+        # В PlayerokAPI node_id это UUID (строка)
+        result = self.cardinal.send_message(str(node_id), response_text, username)
         if result:
-            self.bot.reply_to(message, _("msg_sent", node_id, username),
-                              reply_markup=kb.reply(node_id, username, again=True, extend=True))
+            # Создаем клавиатуру вручную, так как reply ожидает int, а у нас UUID
+            from telebot.types import InlineKeyboardMarkup as K, InlineKeyboardButton as B
+            keyboard = K()
+            keyboard.row(
+                B(_("msg_reply2"), None, f"{CBT.SEND_FP_MESSAGE}:{node_id}:{username}"),
+                B(_("msg_templates"), None, f"{CBT.TMPLT_LIST_ANS_MODE}:0:{node_id}:{username}:1:1")
+            )
+            keyboard.row(B(_("msg_more"), None, f"{CBT.EXTEND_CHAT}:{node_id}:{username}"))
+            keyboard.row(B(f"🌐 {username}", url=f"https://playerok.com/chats/{node_id}"))
+            self.bot.reply_to(message, _("msg_sent", node_id, username), reply_markup=keyboard)
         else:
-            self.bot.reply_to(message, _("msg_sending_error", node_id, username),
-                              reply_markup=kb.reply(node_id, username, again=True, extend=True))
+            keyboard = K()
+            keyboard.row(
+                B(_("msg_reply"), None, f"{CBT.SEND_FP_MESSAGE}:{node_id}:{username}"),
+                B(_("msg_templates"), None, f"{CBT.TMPLT_LIST_ANS_MODE}:0:{node_id}:{username}:0:0")
+            )
+            keyboard.row(B(f"🌐 {username}", url=f"https://playerok.com/chats/{node_id}"))
+            self.bot.reply_to(message, _("msg_sending_error", node_id, username), reply_markup=keyboard)
 
     def act_upload_image(self, m: Message):
         """
@@ -917,7 +932,10 @@ class TGBot:
         Открывает меню ответа на сообщение (callback используется в кнопках "назад").
         """
         split = c.data.split(":")
-        node_id, username, again = int(split[1]), split[2], int(split[3])
+        # В PlayerokAPI node_id это UUID (строка), а не int
+        node_id = str(split[1])
+        username = split[2]
+        again = int(split[3])
         extend = True if len(split) > 4 and int(split[4]) else False
         self.bot.edit_message_reply_markup(c.message.chat.id, c.message.id,
                                            reply_markup=kb.reply(node_id, username, bool(again), extend))
@@ -930,54 +948,50 @@ class TGBot:
         try:
             # В PlayerokAPI chat_id это UUID (строка), а не int
             chat = self.cardinal.account.get_chat(str(chat_id))
-        except:
+            # Получаем сообщения через API
+            messages_list = self.cardinal.account.get_chat_messages(str(chat_id), 10)
+            messages = messages_list.messages if messages_list and messages_list.messages else []
+        except Exception as e:
+            logger.error(f"Ошибка получения чата {chat_id}: {e}")
             self.bot.answer_callback_query(c.id)
             self.bot.send_message(c.message.chat.id, _("get_chat_error"))
             return
 
-        text = ""
-        if chat.looking_link:
-            text += f"<b><i>{_('viewing')}:</i></b>\n<a href=\"{chat.looking_link}\">{chat.looking_text}</a>\n\n"
+        text = f"<b>💬 История сообщений с {username}</b>\n\n"
+        
+        # В PlayerokAPI Chat не имеет messages напрямую, получаем через API
+        if messages:
+            for msg in messages[-10:]:
+                # Получаем автора сообщения
+                if hasattr(msg, 'user') and msg.user:
+                    author_username = msg.user.username if hasattr(msg.user, 'username') else str(msg.user.id)
+                    author_id = str(msg.user.id)
+                else:
+                    author_username = "Unknown"
+                    author_id = ""
+                
+                # Определяем, от кого сообщение
+                if author_id == str(self.cardinal.account.id):
+                    author = f"<i><b>🫵 {_('you')}:</b></i> "
+                elif author_username in self.cardinal.blacklist:
+                    author = f"<i><b>🚷 {author_username}: </b></i>"
+                else:
+                    author = f"<i><b>👤 {author_username}: </b></i>"
+                
+                # Формируем текст сообщения
+                msg_text = ""
+                if msg.text:
+                    msg_text = f"<code>{utils.escape(msg.text)}</code>"
+                elif hasattr(msg, 'file') and msg.file:
+                    msg_text = f"<a href=\"{msg.file.url if hasattr(msg.file, 'url') else '#'}\">{_('photo')}</a>"
+                else:
+                    msg_text = "[Медиа]"
+                
+                text += f"{author}{msg_text}\n\n"
+        else:
+            text += "<i>Сообщений не найдено</i>"
 
-        messages = chat.messages[-10:]
-        last_message_author_id = -1
-        last_by_bot = False
-        last_badge = None
-        last_by_vertex = False
-        for i in messages:
-            if i.author_id == last_message_author_id and i.by_bot == last_by_bot and i.badge == last_badge and \
-                    last_by_vertex == i.by_vertex:
-                author = ""
-            elif i.author_id == self.cardinal.account.id:
-                author = f"<i><b>🤖 {_('you')} (<i>POC</i>):</b></i> " if i.by_bot else f"<i><b>🫵 {_('you')}:</b></i> "
-                if i.is_autoreply:
-                    author = f"<i><b>📦 {_('you')} ({i.badge}):</b></i> "
-            elif i.author_id == 0:
-                author = f"<i><b>🔵 {i.author}: </b></i>"
-            elif i.is_employee:
-                author = f"<i><b>🆘 {i.author} ({i.badge}): </b></i>"
-            elif i.author == i.chat_name:
-                author = f"<i><b>👤 {i.author}: </b></i>"
-                if i.is_autoreply:
-                    author = f"<i><b>🛍️ {i.author} ({i.badge}):</b></i> "
-                elif i.author in self.cardinal.blacklist:
-                    author = f"<i><b>🚷 {i.author}: </b></i>"
-                elif i.by_bot:
-                    author = f"<i><b>🐦 {i.author}: </b></i>"
-                elif i.by_vertex:
-                    author = f"<i><b>🐺 {i.message.author}: </b></i>"
-            else:
-                author = f"<i><b>🆘 {i.author} ({_('support')}): </b></i>"
-            msg_text = f"<code>{utils.escape(i.text)}</code>" if i.text else \
-                f"<a href=\"{i.image_link}\">" \
-                f"{self.cardinal.show_image_name and not (i.author_id == self.cardinal.account.id and i.by_bot) and i.image_name or _('photo')}</a>"
-            text += f"{author}{msg_text}\n\n"
-            last_message_author_id = i.author_id
-            last_by_bot = i.by_bot
-            last_badge = i.badge
-            last_by_vertex = i.by_vertex
-
-        # В PlayerokAPI chat_id это UUID (строка), а не int
+        # Создаем клавиатуру
         from telebot.types import InlineKeyboardMarkup as K, InlineKeyboardButton as B
         from tg_bot import CBT
         
@@ -990,6 +1004,7 @@ class TGBot:
         
         self.bot.edit_message_text(text, c.message.chat.id, c.message.id,
                                    reply_markup=keyboard)
+        self.bot.answer_callback_query(c.id)
 
     # Ордер
     def ask_confirm_refund(self, call: CallbackQuery):
@@ -997,7 +1012,7 @@ class TGBot:
         Просит подтвердить возврат денег.
         """
         split = call.data.split(":")
-        order_id, node_id, username = split[1], int(split[2]), split[3]
+        order_id, node_id, username = split[1], str(split[2]), split[3]  # node_id это UUID (строка)
         keyboard = kb.new_order(order_id, username, node_id, confirmation=True)
         self.bot.edit_message_reply_markup(call.message.chat.id, call.message.id, reply_markup=keyboard)
         self.bot.answer_callback_query(call.id)
@@ -1007,7 +1022,7 @@ class TGBot:
         Отменяет возврат.
         """
         split = call.data.split(":")
-        order_id, node_id, username = split[1], int(split[2]), split[3]
+        order_id, node_id, username = split[1], str(split[2]), split[3]  # node_id это UUID (строка)
         keyboard = kb.new_order(order_id, username, node_id)
         self.bot.edit_message_reply_markup(call.message.chat.id, call.message.id, reply_markup=keyboard)
         self.bot.answer_callback_query(call.id)
@@ -1017,12 +1032,14 @@ class TGBot:
         Оформляет возврат за заказ.
         """
         split = c.data.split(":")
-        order_id, node_id, username = split[1], int(split[2]), split[3]
+        order_id, node_id, username = split[1], str(split[2]), split[3]  # node_id это UUID (строка)
         new_msg = None
         attempts = 3
         while attempts:
             try:
-                self.cardinal.account.refund(order_id)
+                # В PlayerokAPI используется update_deal вместо refund
+                from PlayerokAPI import enums
+                self.cardinal.account.update_deal(order_id, enums.ItemDealStatuses.ROLLED_BACK)
                 break
             except:
                 if not new_msg:
@@ -1051,7 +1068,7 @@ class TGBot:
 
     def open_order_menu(self, c: CallbackQuery):
         split = c.data.split(":")
-        node_id, username, order_id, no_refund = int(split[1]), split[2], split[3], bool(int(split[4]))
+        node_id, username, order_id, no_refund = str(split[1]), split[2], split[3], bool(int(split[4]))  # node_id это UUID (строка)
         self.bot.edit_message_reply_markup(c.message.chat.id, c.message.id,
                                            reply_markup=kb.new_order(order_id, username, node_id, no_refund=no_refund))
 

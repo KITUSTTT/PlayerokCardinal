@@ -408,10 +408,10 @@ Callback для отмены отключения бота.
 
 SEND_FP_MESSAGE = "to_node"
 """
-Callback для отправки сообщения в чат FunPay.
+Callback для отправки сообщения в чат Playerok.
 Использование: CBT.SEND_FP_MESSAGE:node_id:username
 
-node_id: int - ID переписки, в которую нужно отправить сообщение.
+node_id: str - ID переписки (UUID в PlayerokAPI), в которую нужно отправить сообщение.
 username: str - никнейм пользователя, переписка с которым ведется.
 """
 

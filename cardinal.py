@@ -378,6 +378,14 @@ class Cardinal(object):
         try:
             # В PlayerokAPI chat_id это UUID (строка)
             chat_id_str = str(chat_id)
+            
+            # Добавляем watermark, если он включен
+            watermark_enabled = self.MAIN_CFG.get('OrderConfirm', {}).get('watermark', '0') == '1'
+            if watermark_enabled:
+                watermark = self.MAIN_CFG.get("Other", {}).get("watermark", "")
+                if watermark:
+                    text = f"{text}\n<code>{watermark}</code>"
+            
             logger.info(f"$CYANОтправка сообщения в чат $YELLOW{chat_name} (ID: {chat_id_str})$RESET: $CYAN{text[:50]}...$RESET")
             self.account.send_message(chat_id_str, text)
             logger.info(f"$GREENСообщение отправлено в чат $YELLOW{chat_name}$RESET")
