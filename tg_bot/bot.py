@@ -1144,7 +1144,7 @@ class TGBot:
         """
         split = c.data.split(":")
         section, option = split[1], split[2]
-        if section == "FunPay" and option == "oldMsgGetMode":
+        if (section == "FunPay" or section == "Playerok") and option == "oldMsgGetMode":
             self.cardinal.switch_msg_get_mode()
         else:
             if section not in self.cardinal.MAIN_CFG:
@@ -1275,11 +1275,11 @@ class TGBot:
         self.cardinal.save_config(self.cardinal.MAIN_CFG, "configs/_main.cfg")
         if localizer.current_language == "en":
             self.bot.answer_callback_query(c.id, "The translation may be incomplete and contain errors.\n\n"
-                                                 "If you find errors in the translation, let @sidor0912 know.\n\n"
+                                                 "If you find errors in the translation, let @KaDerix know.\n\n"
                                                  "Thank you :)", show_alert=True)
         elif localizer.current_language == "uk":
             self.bot.answer_callback_query(c.id, "Переклад складено за допомогою ChatGPT.\n"
-                                                 "Повідомте @sidor0912, якщо знайдете помилки.", show_alert=True)
+                                                 "Повідомте @KaDerix, якщо знайдете помилки.", show_alert=True)
         elif localizer.current_language == "ru":
             self.bot.answer_callback_query(c.id, '«А я сейчас вам покажу, откуда на Беларусь готовилось нападение»',
                                            show_alert=True)

@@ -40,7 +40,9 @@ def load_main_config(config_path: str):
             "user_agent": "any+empty",
             "autoResponse": ["0", "1"],
             "autoDelivery": ["0", "1"],
-            "autoRestore": ["0", "1"]
+            "autoRestore": ["0", "1"],
+            "oldMsgGetMode": ["0", "1"],
+            "keepSentMessagesUnread": ["0", "1"]
         },
         "Telegram": {
             "enabled": ["0", "1"],
@@ -71,6 +73,18 @@ def load_main_config(config_path: str):
 
         for key in values[section_name]:
             valid_values = values[section_name][key]
+            
+            # UPDATE: Миграции для добавления отсутствующих параметров
+            if section_name == "Playerok" and key == "oldMsgGetMode" and key not in section:
+                config.set("Playerok", "oldMsgGetMode", "0")
+                with open(config_path, "w", encoding="utf-8") as f:
+                    config.write(f)
+            elif section_name == "Playerok" and key == "keepSentMessagesUnread" and key not in section:
+                config.set("Playerok", "keepSentMessagesUnread", "0")
+                with open(config_path, "w", encoding="utf-8") as f:
+                    config.write(f)
+            # END OF UPDATE
+            
             try:
                 if valid_values == "any":
                     result[section_name][key] = check_param(key, section, None)

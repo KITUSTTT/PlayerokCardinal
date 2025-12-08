@@ -361,6 +361,37 @@ class Cardinal(object):
     def block_tg_login(self) -> bool:
         return self.MAIN_CFG["Telegram"].get("blockLogin", "0") == "1"
     
+    @property
+    def old_mode_enabled(self) -> bool:
+        """Возвращает, включен ли старый режим получения сообщений"""
+        playerok_section = self.MAIN_CFG.get("Playerok", {})
+        if isinstance(playerok_section, dict):
+            return playerok_section.get("oldMsgGetMode", "0") == "1"
+        return playerok_section.getboolean("oldMsgGetMode")
+    
+    @property
+    def keep_sent_messages_unread(self) -> bool:
+        """Возвращает, нужно ли оставлять сообщения непрочитанными при отправке"""
+        playerok_section = self.MAIN_CFG.get("Playerok", {})
+        if isinstance(playerok_section, dict):
+            return playerok_section.get("keepSentMessagesUnread", "0") == "1"
+        return playerok_section.getboolean("keepSentMessagesUnread")
+    
+    def switch_msg_get_mode(self):
+        """Переключает режим получения сообщений"""
+        playerok_section = self.MAIN_CFG.get("Playerok", {})
+        if isinstance(playerok_section, dict):
+            current_value = playerok_section.get("oldMsgGetMode", "0")
+            new_value = "1" if current_value == "0" else "0"
+            playerok_section["oldMsgGetMode"] = new_value
+        else:
+            current_value = "1" if playerok_section.getboolean("oldMsgGetMode") else "0"
+            new_value = "0" if current_value == "1" else "1"
+            playerok_section["oldMsgGetMode"] = new_value
+        
+        self.save_config(self.MAIN_CFG, "configs/_main.cfg")
+        logger.info(f"$CYANРежим получения сообщений переключен: $YELLOW{'Старый' if new_value == '1' else 'Новый'}$RESET")
+    
     @staticmethod
     def save_config(config: dict | ConfigParser, path: str):
         """Сохраняет конфиг в файл"""
@@ -380,21 +411,34 @@ class Cardinal(object):
             with open(path, "w", encoding="utf-8") as f:
                 config.write(f)
 
-    def send_message(self, chat_id: str | int, text: str, chat_name: str = ""):
-        """Отправляет сообщение в чат"""
+    def send_message(self, chat_id: str | int, text: str, chat_name: str = "", watermark: bool = True):
+        """
+        Отправляет сообщение в чат
+        
+        :param chat_id: ID чата
+        :param text: текст сообщения
+        :param chat_name: название чата (необязательно)
+        :param watermark: добавлять ли водяной знак в начало сообщения? (по умолчанию True)
+        """
         try:
             # В PlayerokAPI chat_id это UUID (строка)
             chat_id_str = str(chat_id)
             
-            # Добавляем watermark, если он включен
-            watermark_enabled = self.MAIN_CFG.get('OrderConfirm', {}).get('watermark', '0') == '1'
-            if watermark_enabled:
-                watermark = self.MAIN_CFG.get("Other", {}).get("watermark", "")
-                if watermark:
-                    text = f"{text}\n<code>{watermark}</code>"
+            # Добавляем watermark в начало сообщения, если он включен (как в FunPayCardinal)
+            if watermark and self.MAIN_CFG.get("Other", {}).get("watermark") and not text.strip().startswith("$photo="):
+                watermark_text = self.MAIN_CFG.get("Other", {}).get("watermark", "")
+                if watermark_text:
+                    text = f"{watermark_text}\n{text}"
+            
+            # Определяем, нужно ли помечать чат как прочитанный
+            # Если keepSentMessagesUnread включен (1), НЕ помечаем как прочитанный (mark_chat_as_read=False)
+            # Если keepSentMessagesUnread выключен (0), помечаем как прочитанный (mark_chat_as_read=True)
+            keep_unread = self.keep_sent_messages_unread
+            mark_chat_as_read = not keep_unread
             
             logger.info(f"$CYANОтправка сообщения в чат $YELLOW{chat_name} (ID: {chat_id_str})$RESET: $CYAN{text[:50]}...$RESET")
-            self.account.send_message(chat_id_str, text)
+            logger.debug(f"keepSentMessagesUnread={keep_unread}, mark_chat_as_read={mark_chat_as_read}")
+            self.account.send_message(chat_id_str, text, mark_chat_as_read=mark_chat_as_read)
             logger.info(f"$GREENСообщение отправлено в чат $YELLOW{chat_name}$RESET")
             return True
         except Exception as e:
