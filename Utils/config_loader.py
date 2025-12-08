@@ -92,6 +92,9 @@ def load_auto_response_config(config_path: str):
         raise
 
     for section_name in config.sections():
+        # Пропускаем секции, начинающиеся с ! (комментарии/документация)
+        if section_name.startswith("!"):
+            continue
         section = config[section_name]
         try:
             command = check_param("command", section)
@@ -120,6 +123,9 @@ def load_auto_delivery_config(config_path: str):
         raise
 
     for section_name in config.sections():
+        # Пропускаем секции, начинающиеся с ! (комментарии/документация)
+        if section_name.startswith("!"):
+            continue
         section = config[section_name]
         try:
             lot_id = check_param("lot_id", section)
