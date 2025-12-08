@@ -61,9 +61,15 @@ def init_templates_cp(cardinal: Cardinal, *args):
         # В PlayerokAPI node_id это UUID (строка), а не int
         offset = int(split[1])
         node_id = str(split[2])  # UUID, не преобразуем в int
-        username = split[3]
-        prev_page = int(split[4])
-        extra = split[5:]
+        prev_page = int(split[3])
+        extra = split[4:] if len(split) > 4 else []
+        # Получаем username из чата
+        try:
+            chat = cardinal.account.get_chat(node_id)
+            username = chat.users[0].username if chat.users and hasattr(chat.users[0], 'username') else str(chat.users[0].id) if chat.users else ""
+        except Exception as e:
+            logger.error(f"Ошибка получения чата {node_id}: {e}")
+            username = ""
         bot.edit_message_reply_markup(c.message.chat.id, c.message.id,
                                       reply_markup=keyboards.templates_list_ans_mode(cardinal, offset, node_id,
                                                                                      username, prev_page, extra))
@@ -132,9 +138,15 @@ def init_templates_cp(cardinal: Cardinal, *args):
         # В PlayerokAPI node_id это UUID (строка), а не int
         template_index = int(split[1])
         node_id = str(split[2])  # UUID, не преобразуем в int
-        username = split[3]
-        prev_page = int(split[4])
-        extra = split[5:]
+        prev_page = int(split[3])
+        extra = split[4:] if len(split) > 4 else []
+        # Получаем username из чата
+        try:
+            chat = cardinal.account.get_chat(node_id)
+            username = chat.users[0].username if chat.users and hasattr(chat.users[0], 'username') else str(chat.users[0].id) if chat.users else ""
+        except Exception as e:
+            logger.error(f"Ошибка получения чата {node_id}: {e}")
+            username = ""
 
         if template_index > len(tg.answer_templates) - 1:
             bot.send_message(c.message.chat.id, _("tmplt_not_found_err", template_index),

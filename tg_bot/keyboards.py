@@ -597,15 +597,15 @@ def new_order(order_id: str, username: str, node_id: str | int,
     kb = K()
     if not no_refund:
         if confirmation:
-            kb.row(B(_("gl_yes"), None, f"{CBT.REFUND_CONFIRMED}:{order_id}:{node_id_str}:{username}"),
-                   B(_("gl_no"), None, f"{CBT.REFUND_CANCELLED}:{order_id}:{node_id_str}:{username}"))
+            kb.row(B(_("gl_yes"), None, f"{CBT.REFUND_CONFIRMED}:{order_id}:{node_id_str}"),
+                   B(_("gl_no"), None, f"{CBT.REFUND_CANCELLED}:{order_id}:{node_id_str}"))
         else:
-            kb.add(B(_("ord_refund"), None, f"{CBT.REQUEST_REFUND}:{order_id}:{node_id_str}:{username}"))
+            kb.add(B(_("ord_refund"), None, f"{CBT.REQUEST_REFUND}:{order_id}:{node_id_str}"))
 
     kb.add(B(_("ord_open"), url=f"https://playerok.com/deals/{order_id}/")) \
-        .row(B(_("ord_answer"), None, f"{CBT.SEND_FP_MESSAGE}:{node_id_str}:{username}"),
+        .row(B(_("ord_answer"), None, f"{CBT.SEND_FP_MESSAGE}:{node_id_str}"),
              B(_("ord_templates"), None,
-               f"{CBT.TMPLT_LIST_ANS_MODE}:0:{node_id_str}:{username}:2:{order_id}:{1 if no_refund else 0}"))
+               f"{CBT.TMPLT_LIST_ANS_MODE}:0:{node_id_str}:2:{order_id}:{1 if no_refund else 0}"))
     return kb
 
 
@@ -622,10 +622,12 @@ def reply(node_id: str | int, username: str, again: bool = False, extend: bool =
     """
     # В PlayerokAPI node_id это UUID (строка)
     node_id_str = str(node_id)
-    bts = [B(_("msg_reply2") if again else _("msg_reply"), None, f"{CBT.SEND_FP_MESSAGE}:{node_id_str}:{username}"),
-           B(_("msg_templates"), None, f"{CBT.TMPLT_LIST_ANS_MODE}:0:{node_id_str}:{username}:{int(again)}:{int(extend)}")]
+    # Убираем username из callback_data для TMPLT_LIST_ANS_MODE, чтобы не превысить лимит 64 байта
+    # username можно получить из чата по node_id
+    bts = [B(_("msg_reply2") if again else _("msg_reply"), None, f"{CBT.SEND_FP_MESSAGE}:{node_id_str}"),
+           B(_("msg_templates"), None, f"{CBT.TMPLT_LIST_ANS_MODE}:0:{node_id_str}:{int(again)}:{int(extend)}")]
     if extend:
-        bts.append(B(_("msg_more"), None, f"{CBT.EXTEND_CHAT}:{node_id_str}:{username}"))
+        bts.append(B(_("msg_more"), None, f"{CBT.EXTEND_CHAT}:{node_id_str}"))
     bts.append(B(f"🌐 {username}", url=f"https://playerok.com/chats/{node_id_str}"))
     kb = K() \
         .row(*bts)
@@ -700,9 +702,9 @@ def templates_list_ans_mode(c: Cardinal, offset: int, node_id: int, username: st
 
     for index, tmplt in enumerate(templates):
         kb.add(B(tmplt.replace("$username", username),
-                 None, f"{CBT.SEND_TMPLT}:{offset + index}:{node_id}:{username}:{prev_page}{extra_str}"))
+                 None, f"{CBT.SEND_TMPLT}:{offset + index}:{node_id}:{prev_page}{extra_str}"))
 
-    extra_list = [node_id, username, prev_page]
+    extra_list = [node_id, prev_page]
     if extra:
         extra_list.extend(extra)
     kb = add_navigation_buttons(kb, offset, MENU_CFG.TMPLT_BTNS_AMOUNT, len(templates),
@@ -710,11 +712,11 @@ def templates_list_ans_mode(c: Cardinal, offset: int, node_id: int, username: st
                                 extra_list)
 
     if prev_page == 0:
-        kb.add(B(_("gl_back"), None, f"{CBT.BACK_TO_REPLY_KB}:{node_id}:{username}:0{extra_str}"))
+        kb.add(B(_("gl_back"), None, f"{CBT.BACK_TO_REPLY_KB}:{node_id}:0{extra_str}"))
     elif prev_page == 1:
-        kb.add(B(_("gl_back"), None, f"{CBT.BACK_TO_REPLY_KB}:{node_id}:{username}:1{extra_str}"))
+        kb.add(B(_("gl_back"), None, f"{CBT.BACK_TO_REPLY_KB}:{node_id}:1{extra_str}"))
     elif prev_page == 2:
-        kb.add(B(_("gl_back"), None, f"{CBT.BACK_TO_ORDER_KB}:{node_id}:{username}{extra_str}"))
+        kb.add(B(_("gl_back"), None, f"{CBT.BACK_TO_ORDER_KB}:{node_id}{extra_str}"))
     return kb
 
 

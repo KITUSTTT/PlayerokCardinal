@@ -780,10 +780,13 @@ class TGBot:
         split = c.data.split(":")
         # В PlayerokAPI node_id это UUID (строка), а не int
         node_id = str(split[1])
+        # Получаем username из чата, так как его больше нет в callback_data
         try:
-            username = split[2]
-        except IndexError:
-            username = None
+            chat = self.cardinal.account.get_chat(node_id)
+            username = chat.users[0].username if chat.users and hasattr(chat.users[0], 'username') else str(chat.users[0].id) if chat.users else ""
+        except Exception as e:
+            logger.error(f"Ошибка получения чата {node_id}: {e}")
+            username = ""
         result = self.bot.send_message(c.message.chat.id, _("enter_msg_text"), reply_markup=skb.CLEAR_STATE_BTN())
         self.set_state(c.message.chat.id, result.id, c.from_user.id,
                        CBT.SEND_FP_MESSAGE, {"node_id": node_id, "username": username})
@@ -804,17 +807,17 @@ class TGBot:
             from telebot.types import InlineKeyboardMarkup as K, InlineKeyboardButton as B
             keyboard = K()
             keyboard.row(
-                B(_("msg_reply2"), None, f"{CBT.SEND_FP_MESSAGE}:{node_id}:{username}"),
-                B(_("msg_templates"), None, f"{CBT.TMPLT_LIST_ANS_MODE}:0:{node_id}:{username}:1:1")
+                B(_("msg_reply2"), None, f"{CBT.SEND_FP_MESSAGE}:{node_id}"),
+                B(_("msg_templates"), None, f"{CBT.TMPLT_LIST_ANS_MODE}:0:{node_id}:1:1")
             )
-            keyboard.row(B(_("msg_more"), None, f"{CBT.EXTEND_CHAT}:{node_id}:{username}"))
+            keyboard.row(B(_("msg_more"), None, f"{CBT.EXTEND_CHAT}:{node_id}"))
             keyboard.row(B(f"🌐 {username}", url=f"https://playerok.com/chats/{node_id}"))
             self.bot.reply_to(message, _("msg_sent", node_id, username), reply_markup=keyboard)
         else:
             keyboard = K()
             keyboard.row(
-                B(_("msg_reply"), None, f"{CBT.SEND_FP_MESSAGE}:{node_id}:{username}"),
-                B(_("msg_templates"), None, f"{CBT.TMPLT_LIST_ANS_MODE}:0:{node_id}:{username}:0:0")
+                B(_("msg_reply"), None, f"{CBT.SEND_FP_MESSAGE}:{node_id}"),
+                B(_("msg_templates"), None, f"{CBT.TMPLT_LIST_ANS_MODE}:0:{node_id}:0:0")
             )
             keyboard.row(B(f"🌐 {username}", url=f"https://playerok.com/chats/{node_id}"))
             self.bot.reply_to(message, _("msg_sending_error", node_id, username), reply_markup=keyboard)
@@ -934,9 +937,15 @@ class TGBot:
         split = c.data.split(":")
         # В PlayerokAPI node_id это UUID (строка), а не int
         node_id = str(split[1])
-        username = split[2]
-        again = int(split[3])
-        extend = True if len(split) > 4 and int(split[4]) else False
+        again = int(split[2])
+        extend = True if len(split) > 3 and int(split[3]) else False
+        # Получаем username из чата
+        try:
+            chat = self.cardinal.account.get_chat(node_id)
+            username = chat.users[0].username if chat.users and hasattr(chat.users[0], 'username') else str(chat.users[0].id) if chat.users else ""
+        except Exception as e:
+            logger.error(f"Ошибка получения чата {node_id}: {e}")
+            username = ""
         self.bot.edit_message_reply_markup(c.message.chat.id, c.message.id,
                                            reply_markup=kb.reply(node_id, username, bool(again), extend))
 
@@ -944,10 +953,12 @@ class TGBot:
         """
         "Расширяет" уведомление о новом сообщении.
         """
-        chat_id, username = c.data.split(":")[1:]
+        chat_id = c.data.split(":")[1]
         try:
             # В PlayerokAPI chat_id это UUID (строка), а не int
             chat = self.cardinal.account.get_chat(str(chat_id))
+            # Получаем username из чата
+            username = chat.users[0].username if chat.users and hasattr(chat.users[0], 'username') else str(chat.users[0].id) if chat.users else ""
             # Получаем сообщения через API
             messages_list = self.cardinal.account.get_chat_messages(str(chat_id), 10)
             messages = messages_list.messages if messages_list and messages_list.messages else []
@@ -997,8 +1008,8 @@ class TGBot:
         
         keyboard = K()
         keyboard.row(
-            B(_("msg_reply"), None, f"{CBT.SEND_FP_MESSAGE}:{chat_id}:{username}"),
-            B(_("msg_templates"), None, f"{CBT.TMPLT_LIST_ANS_MODE}:0:{chat_id}:{username}:0:0")
+            B(_("msg_reply"), None, f"{CBT.SEND_FP_MESSAGE}:{chat_id}"),
+            B(_("msg_templates"), None, f"{CBT.TMPLT_LIST_ANS_MODE}:0:{chat_id}:0:0")
         )
         keyboard.row(B(f"🌐 {username}", url=f"https://playerok.com/chats/{chat_id}"))
         
@@ -1012,7 +1023,14 @@ class TGBot:
         Просит подтвердить возврат денег.
         """
         split = call.data.split(":")
-        order_id, node_id, username = split[1], str(split[2]), split[3]  # node_id это UUID (строка)
+        order_id, node_id = split[1], str(split[2])  # node_id это UUID (строка)
+        # Получаем username из чата
+        try:
+            chat = self.cardinal.account.get_chat(node_id)
+            username = chat.users[0].username if chat.users and hasattr(chat.users[0], 'username') else str(chat.users[0].id) if chat.users else ""
+        except Exception as e:
+            logger.error(f"Ошибка получения чата {node_id}: {e}")
+            username = ""
         keyboard = kb.new_order(order_id, username, node_id, confirmation=True)
         self.bot.edit_message_reply_markup(call.message.chat.id, call.message.id, reply_markup=keyboard)
         self.bot.answer_callback_query(call.id)
@@ -1022,7 +1040,14 @@ class TGBot:
         Отменяет возврат.
         """
         split = call.data.split(":")
-        order_id, node_id, username = split[1], str(split[2]), split[3]  # node_id это UUID (строка)
+        order_id, node_id = split[1], str(split[2])  # node_id это UUID (строка)
+        # Получаем username из чата
+        try:
+            chat = self.cardinal.account.get_chat(node_id)
+            username = chat.users[0].username if chat.users and hasattr(chat.users[0], 'username') else str(chat.users[0].id) if chat.users else ""
+        except Exception as e:
+            logger.error(f"Ошибка получения чата {node_id}: {e}")
+            username = ""
         keyboard = kb.new_order(order_id, username, node_id)
         self.bot.edit_message_reply_markup(call.message.chat.id, call.message.id, reply_markup=keyboard)
         self.bot.answer_callback_query(call.id)
@@ -1032,7 +1057,14 @@ class TGBot:
         Оформляет возврат за заказ.
         """
         split = c.data.split(":")
-        order_id, node_id, username = split[1], str(split[2]), split[3]  # node_id это UUID (строка)
+        order_id, node_id = split[1], str(split[2])  # node_id это UUID (строка)
+        # Получаем username из чата
+        try:
+            chat = self.cardinal.account.get_chat(node_id)
+            username = chat.users[0].username if chat.users and hasattr(chat.users[0], 'username') else str(chat.users[0].id) if chat.users else ""
+        except Exception as e:
+            logger.error(f"Ошибка получения чата {node_id}: {e}")
+            username = ""
         new_msg = None
         attempts = 3
         while attempts:
@@ -1068,7 +1100,16 @@ class TGBot:
 
     def open_order_menu(self, c: CallbackQuery):
         split = c.data.split(":")
-        node_id, username, order_id, no_refund = str(split[1]), split[2], split[3], bool(int(split[4]))  # node_id это UUID (строка)
+        node_id = str(split[1])  # UUID (строка)
+        order_id = split[2] if len(split) > 2 else ""
+        no_refund = bool(int(split[3])) if len(split) > 3 else False
+        # Получаем username из чата
+        try:
+            chat = self.cardinal.account.get_chat(node_id)
+            username = chat.users[0].username if chat.users and hasattr(chat.users[0], 'username') else str(chat.users[0].id) if chat.users else ""
+        except Exception as e:
+            logger.error(f"Ошибка получения чата {node_id}: {e}")
+            username = ""
         self.bot.edit_message_reply_markup(c.message.chat.id, c.message.id,
                                            reply_markup=kb.new_order(order_id, username, node_id, no_refund=no_refund))
 
