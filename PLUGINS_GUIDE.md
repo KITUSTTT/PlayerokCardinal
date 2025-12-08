@@ -392,3 +392,4 @@ BIND_TO_NEW_DEAL = [on_new_deal]
 
 Если у вас есть вопросы, обращайтесь в [Telegram чат](https://t.me/kaderixfjsfsd).
 
+

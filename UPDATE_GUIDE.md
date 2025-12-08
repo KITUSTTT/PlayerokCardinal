@@ -158,3 +158,4 @@ A: Скрипт `CREATE_RELEASE.bat` предупредит вас и предл
 - **Создание релиза:** https://github.com/KITUSTTT/PlayerokCardinal/releases/new
 - **Telegram чат:** [@kaderixfjsfsd](https://t.me/kaderixfjsfsd)
 
+

@@ -55,6 +55,8 @@ def send_response_handler(c: Cardinal, event: NewMessageEvent):
     chat_name = chat.name if hasattr(chat, 'name') else str(chat.id)
     logger.info(_("log_new_cmd", mtext, chat_name, chat.id))
     response = c.AR_CFG[mtext]["response"]
+    # Форматируем переменные в ответе
+    response = cardinal_tools.format_msg_text(response, message)
     c.send_message(chat.id, response, chat_name)
 
 def auto_delivery_handler(c: Cardinal, event: NewDealEvent | ItemPaidEvent):
@@ -104,7 +106,10 @@ def auto_delivery_handler(c: Cardinal, event: NewDealEvent | ItemPaidEvent):
                     f.writelines(lines[1:])
                 
                 response = response.replace("$product", product)
-                buyer_name = deal.buyer.username if hasattr(deal, 'buyer') and hasattr(deal.buyer, 'username') else ""
+                # Форматируем переменные в ответе автовыдачи
+                response = cardinal_tools.format_order_text(response, deal)
+                # В PlayerokAPI для ItemDeal используется user, а не buyer
+                buyer_name = deal.user.username if hasattr(deal, 'user') and hasattr(deal.user, 'username') else ""
                 c.send_message(chat.id, response, buyer_name)
                 
                 logger.info(f"Товар для заказа $YELLOW#{deal.id}$RESET выдан: $CYAN{product}$RESET")
@@ -170,7 +175,8 @@ def register_handlers(c: Cardinal):
     c.chat_initialized_handlers.append(chat_initialized_handler)
     c.new_message_handlers.append(log_msg_handler)
     c.new_message_handlers.append(send_response_handler)
-    c.new_order_handlers.append(auto_delivery_handler)
+    # Используем new_deal_handlers вместо new_order_handlers (NEW_DEAL событие)
+    c.new_deal_handlers.append(auto_delivery_handler)
     c.item_paid_handlers.append(auto_delivery_handler)
     
     logger.info("Обработчики зарегистрированы!")

@@ -415,7 +415,11 @@ def format_order_text(text: str, order: PlayerokAPI.types.ItemDeal) -> str:
         logger.debug("TRACEBACK", exc_info=True)
     description = order.item.name if hasattr(order.item, 'name') else ""
     params = order.props if hasattr(order, 'props') and order.props else ""
-    username = order.user.username if hasattr(order.user, 'username') else str(order.user.id)
+    # В PlayerokAPI для ItemDeal используется user (покупатель/продавец сделки)
+    if hasattr(order, 'user') and order.user:
+        username = order.user.username if hasattr(order.user, 'username') else str(order.user.id)
+    else:
+        username = ""
     variables = {
         "$full_date_text": str_full_date,
         "$date_text": str_date,
