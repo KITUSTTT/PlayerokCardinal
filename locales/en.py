@@ -217,8 +217,8 @@ poc_init = """✅ <b><u>Playerok Cardinal initialized!</u></b>\n
 💰 <b><i>Balance:</i></b> <code>{}₽, {}$, {}€</code>
 📊 <b><i>Active orders:</i></b>  <code>{}</code>
 
-💬 <b><i>Telegram chat:</i></b> @kaderixfjsfsd
-🧩 <b><i>Plugins:</i></b> @KaDerix_Shop
+💬 <b><i>Telegram chat:</i></b> @playerok_cardinall
+🧩 <b><i>Plugins:</i></b> @KaDerix_Shop_Bot
 👨‍💻 <b><i>Developer:</i></b> @KaDerix"""
 
 create_test_ad_key = "Enter the name of the lot whose auto-delivery you want to test."
@@ -228,8 +228,8 @@ Send the command from below to chat with the user to whom you want to deliver th
 <code>!автовыдача {}</code>"""
 
 about = """<b>🐦 Playerok Cardinal 🐦 v{}</b>\n
-<i>Telegram chat:</i> @kaderixfjsfsd
-<i>Plugins:</i> @KaDerix_Shop
+<i>Telegram chat:</i> @playerok_cardinall
+<i>Plugins:</i> @KaDerix_Shop_Bot
 <i>Developer:</i> @KaDerix"""
 
 sys_info = """<b><u>Data summary</u></b>
@@ -412,7 +412,7 @@ pl_file_not_found_err = "❌  File <code>{}</code> not found.\nRestart <i>FPC</i
 pl_commands_list = "<b><i>{}</i></b> plugin commands list."
 pl_author = "Dev"
 pl_new = "Send me a plugin.\n\n<b>⚠️ ATTENTION! Downloading plugins from questionable sources may lead to unfortunate consequences.\n" \
-         "@KaDerix_Shop solves most potential issues.</b>"
+         "@KaDerix_Shop_Bot solves most potential issues.</b>"
 
 au_user_settings = "Settings for user {}"
 adv_poc = "😎 Playerok Cardinal (POC) - the best bot for Playerok"
@@ -430,8 +430,8 @@ adv_description = """🐦 Playerok Cardinal v{}🐦
 🌟 And much more...
 
 🛠️ Playerok Cardinal (POC)
-🧩 Plugins: @KaDerix_Shop
-💬 Chat: @kaderixfjsfsd
+🧩 Plugins: @KaDerix_Shop_Bot
+💬 Chat: @playerok_cardinall
 👨‍💻 Developer: @KaDerix"""
 
 # - Menus desc

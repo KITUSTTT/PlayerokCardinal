@@ -76,9 +76,8 @@ class Cardinal(object):
         self.AR_CFG = auto_response_config
         self.RAW_AR_CFG = raw_auto_response_config
         
-        # Прокси
         self.proxy = None
-        self.proxy_dict = cardinal_tools.load_proxy_dict()  # прокси {0: "login:password@ip:port", 1: "ip:port"...}
+        self.proxy_dict = cardinal_tools.load_proxy_dict()
         if self.MAIN_CFG["Proxy"].get("enable") == "1":
             if self.MAIN_CFG["Proxy"]["ip"] and self.MAIN_CFG["Proxy"]["port"].isnumeric():
                 from locales.localizer import Localizer
@@ -89,15 +88,12 @@ class Cardinal(object):
                 ip, port = self.MAIN_CFG["Proxy"]["ip"], self.MAIN_CFG["Proxy"]["port"]
                 login, password = self.MAIN_CFG["Proxy"]["login"], self.MAIN_CFG["Proxy"]["password"]
                 proxy_str = f"{f'{login}:{password}@' if login and password else ''}{ip}:{port}"
-                # Словарь для проверки прокси через requests
                 proxy_dict_for_check = {
                     "http": f"http://{proxy_str}",
                     "https": f"http://{proxy_str}"
                 }
-                # Строка для PlayerokAPI.Account
                 self.proxy = proxy_str
                 
-                # Добавляем прокси в proxy_dict, если его там еще нет
                 if proxy_str not in self.proxy_dict.values():
                     max_id = max(self.proxy_dict.keys(), default=-1) if self.proxy_dict else -1
                     self.proxy_dict[max_id + 1] = proxy_str
@@ -128,7 +124,7 @@ class Cardinal(object):
         self.running = False
         self.run_id = 0
         self.start_time = int(time.time())
-        self.instance_id = id(self)  # ID экземпляра для проверки при выключении
+        self.instance_id = id(self)
         self.blacklist = cardinal_tools.load_blacklist()
         
         self.autoresponse_enabled = self.MAIN_CFG["Playerok"].get("autoResponse") == "1"
@@ -162,7 +158,6 @@ class Cardinal(object):
         self.plugins: dict[str, PluginData] = {}
         self.disabled_plugins = cardinal_tools.load_disabled_plugins()
         
-        # Хэндлеры для плагинов
         self.handler_bind_var_names = {
             "BIND_TO_PRE_INIT": self.pre_init_handlers,
             "BIND_TO_POST_INIT": self.post_init_handlers,
@@ -187,19 +182,16 @@ class Cardinal(object):
     def get_balance(self):
         """Получает баланс аккаунта"""
         try:
-            # Получаем профиль аккаунта
             if hasattr(self.account, 'profile') and self.account.profile:
                 if hasattr(self.account.profile, 'balance') and self.account.profile.balance:
                     return self.account.profile.balance
-            # Если баланс не найден, обновляем данные аккаунта
             self.account.get()
             if hasattr(self.account, 'profile') and self.account.profile and hasattr(self.account.profile, 'balance'):
                 return self.account.profile.balance
-            # Создаем пустой баланс если не найден
             from PlayerokAPI.types import AccountBalance
             return AccountBalance(id="", value=0, frozen=0, available=0, withdrawable=0, pending_income=0)
         except Exception as e:
-            logger.error(f"$REDОшибка при получении баланса: $YELLOW{e}$RESET")
+            logger.error(f"Ошибка при получении баланса: {e}")
             logger.debug("TRACEBACK", exc_info=True)
             from PlayerokAPI.types import AccountBalance
             return AccountBalance(id="", value=0, frozen=0, available=0, withdrawable=0, pending_income=0)
@@ -222,7 +214,7 @@ class Cardinal(object):
             except TimeoutError:
                 logger.error(_("crd_acc_get_timeout_err"))
             except Exception as e:
-                logger.error(f"$REDОшибка при авторизации: $YELLOW{e}$RESET")
+                logger.error(f"Ошибка при авторизации: {e}")
                 logger.debug("TRACEBACK", exc_info=True)
             logger.warning(_("crd_try_again_in_n_secs", 2))
             time.sleep(2)
@@ -240,73 +232,61 @@ class Cardinal(object):
         localizer = Localizer()
         _ = localizer.translate
         
-        logger.info("$CYANИнициализация Cardinal...$RESET")
         
         handlers.register_handlers(self)
         
         if self.MAIN_CFG["Telegram"].get("enabled") == "1":
             self.__init_telegram()
-            # Импортируем и регистрируем обработчики Telegram
             try:
                 from tg_bot import auto_response_cp, auto_delivery_cp, config_loader_cp, templates_cp, plugins_cp, \
                                    file_uploader, authorized_users_cp, proxy_cp, default_cp
                 for module in [auto_response_cp, auto_delivery_cp, config_loader_cp, templates_cp, plugins_cp,
                                file_uploader, authorized_users_cp, proxy_cp, default_cp]:
                     try:
-                        # Регистрируем обработчики из модуля через BIND_TO_*
                         self.add_handlers_from_plugin(module)
                     except Exception as e:
-                        logger.error(f"$REDОшибка при регистрации обработчиков модуля $YELLOW{module.__name__}$RESET: $YELLOW{e}$RESET")
+                        logger.error(f"Ошибка при регистрации обработчиков модуля {module.__name__}: {e}")
                         logger.debug("TRACEBACK", exc_info=True)
                 
-                # Вызываем pre_init обработчики встроенных модулей (они регистрируют callback handlers в telegram боте)
-                # Плагины будут вызваны позже, после их загрузки
                 self.run_handlers(self.pre_init_handlers, (self,))
             except Exception as e:
-                logger.warning(f"$YELLOWОшибка при загрузке Telegram модулей: $YELLOW{e}$RESET")
+                logger.warning(f"Ошибка при загрузке Telegram модулей: {e}")
                 logger.debug("TRACEBACK", exc_info=True)
         
         self.__init_account()
         self.listener = EventListener(self.account)
         
-        # Загружаем плагины
         self.load_plugins()
         self.add_handlers()
         
-        # Вызываем pre_init_handlers из плагинов (для регистрации callback handlers)
         if self.telegram:
             self.run_handlers(self.pre_init_handlers, (self,))
         
-        logger.info("$GREENCardinal инициализирован успешно!$RESET")
         
-        # Вызываем post_init_handlers с задержкой, чтобы бот успел отправить bot_started
         import time
         time.sleep(2)  # Даем время боту отправить сообщение bot_started и заполнить init_messages
         self.run_handlers(self.post_init_handlers, (self,))
         
-        # Обновляем меню команд после загрузки плагинов и выполнения post_init_handlers
-        # (чтобы команды из плагинов успели зарегистрироваться)
         if self.telegram:
             self.telegram.update_commands_menu()
         
         return self
     
     def run_handlers(self, handlers_list: list, args: tuple):
-        """Вызывает список обработчиков с указанными аргументами"""
-        logger.debug(f"Вызов run_handlers для {len(handlers_list)} обработчиков")
-        for i, handler in enumerate(handlers_list):
+        """
+        Вызывает список обработчиков с указанными аргументами
+        
+        :param handlers_list: список обработчиков для вызова
+        :param args: аргументы для передачи обработчикам
+        """
+        for handler in handlers_list:
             try:
                 plugin_uuid = getattr(handler, "plugin_uuid", None)
                 handler_name = getattr(handler, "__name__", str(handler))
-                logger.debug(f"Обработчик {i+1}/{len(handlers_list)}: {handler_name}, plugin_uuid: {plugin_uuid}")
                 if plugin_uuid is None or (plugin_uuid in self.plugins and self.plugins[plugin_uuid].enabled):
-                    logger.debug(f"Вызов обработчика: {handler_name}")
                     handler(*args)
-                    logger.debug(f"Обработчик {handler_name} выполнен успешно")
-                else:
-                    logger.debug(f"Обработчик {handler_name} пропущен (плагин отключен или не найден)")
             except Exception as e:
-                logger.error(f"$REDОшибка в обработчике {handler_name}: $YELLOW{e}$RESET")
+                logger.error(f"Ошибка в обработчике {handler_name}: {e}")
                 logger.debug("TRACEBACK", exc_info=True)
 
     def process_events(self):
@@ -338,11 +318,10 @@ class Cardinal(object):
                     try:
                         handler(self, event)
                     except Exception as e:
-                        logger.error(f"$REDОшибка в обработчике события $YELLOW{event_type}$RESET: $YELLOW{e}$RESET")
+                        logger.error(f"Ошибка в обработчике события {event_type}: {e}")
                         logger.debug("TRACEBACK", exc_info=True)
 
     def run(self):
-        logger.info("$CYANЗапуск Cardinal...$RESET")
         self.run_id += 1
         self.running = True
         self.start_time = int(time.time())
@@ -350,10 +329,9 @@ class Cardinal(object):
         try:
             self.process_events()
         except KeyboardInterrupt:
-            logger.info("$YELLOWПолучен сигнал остановки...$RESET")
             self.running = False
         except Exception as e:
-            logger.error(f"$REDОшибка при обработке событий: $YELLOW{e}$RESET")
+            logger.error(f"Ошибка при обработке событий: {e}")
             logger.debug("TRACEBACK", exc_info=True)
             self.running = False
 
@@ -390,14 +368,12 @@ class Cardinal(object):
             playerok_section["oldMsgGetMode"] = new_value
         
         self.save_config(self.MAIN_CFG, "configs/_main.cfg")
-        logger.info(f"$CYANРежим получения сообщений переключен: $YELLOW{'Старый' if new_value == '1' else 'Новый'}$RESET")
     
     @staticmethod
     def save_config(config: dict | ConfigParser, path: str):
         """Сохраняет конфиг в файл"""
         import configparser
         if isinstance(config, dict):
-            # Если config это dict, создаем ConfigParser и заполняем его
             cfg = configparser.ConfigParser(delimiters=(":",), interpolation=None)
             cfg.optionxform = str
             for section_name, section_data in config.items():
@@ -407,7 +383,6 @@ class Cardinal(object):
             with open(path, "w", encoding="utf-8") as f:
                 cfg.write(f)
         else:
-            # Если config это ConfigParser, сохраняем как обычно
             with open(path, "w", encoding="utf-8") as f:
                 config.write(f)
 
@@ -421,28 +396,19 @@ class Cardinal(object):
         :param watermark: добавлять ли водяной знак в начало сообщения? (по умолчанию True)
         """
         try:
-            # В PlayerokAPI chat_id это UUID (строка)
             chat_id_str = str(chat_id)
-            
-            # Добавляем watermark в начало сообщения, если он включен (как в FunPayCardinal)
             if watermark and self.MAIN_CFG.get("Other", {}).get("watermark") and not text.strip().startswith("$photo="):
                 watermark_text = self.MAIN_CFG.get("Other", {}).get("watermark", "")
                 if watermark_text:
                     text = f"{watermark_text}\n{text}"
             
-            # Определяем, нужно ли помечать чат как прочитанный
-            # Если keepSentMessagesUnread включен (1), НЕ помечаем как прочитанный (mark_chat_as_read=False)
-            # Если keepSentMessagesUnread выключен (0), помечаем как прочитанный (mark_chat_as_read=True)
             keep_unread = self.keep_sent_messages_unread
             mark_chat_as_read = not keep_unread
             
-            logger.info(f"$CYANОтправка сообщения в чат $YELLOW{chat_name} (ID: {chat_id_str})$RESET: $CYAN{text[:50]}...$RESET")
-            logger.debug(f"keepSentMessagesUnread={keep_unread}, mark_chat_as_read={mark_chat_as_read}")
             self.account.send_message(chat_id_str, text, mark_chat_as_read=mark_chat_as_read)
-            logger.info(f"$GREENСообщение отправлено в чат $YELLOW{chat_name}$RESET")
             return True
         except Exception as e:
-            logger.error(f"$REDОшибка при отправке сообщения: $YELLOW{e}$RESET")
+            logger.error(f"Ошибка при отправке сообщения: {e}")
             logger.debug("TRACEBACK", exc_info=True)
             return False
     
@@ -551,13 +517,11 @@ class Cardinal(object):
         :param uuid: UUID плагина (None для встроенных хэндлеров).
         """
         plugin_name = getattr(plugin, "__name__", str(plugin))
-        logger.debug(f"Добавление обработчиков из: {plugin_name}, UUID: {uuid}")
         handlers_count = 0
         for name in self.handler_bind_var_names:
             try:
                 functions = getattr(plugin, name)
                 if functions:
-                    logger.debug(f"Найдены обработчики {name}: {len(functions)} шт. в {plugin_name}")
                     for func in functions:
                         func.plugin_uuid = uuid
                     self.handler_bind_var_names[name].extend(functions)
@@ -569,9 +533,6 @@ class Cardinal(object):
         _ = localizer.translate
         if handlers_count > 0:
             logger.info(_("crd_handlers_registered", plugin.__name__) + f" ({handlers_count} обработчиков)")
-        else:
-            logger.debug(f"В {plugin_name} не найдено обработчиков")
-
     def add_handlers(self):
         """
         Регистрирует хэндлеры из всех плагинов.

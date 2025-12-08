@@ -218,8 +218,8 @@ poc_init = """✅ <b><u>Playerok Cardinal инициализирован!</u></b
 💰 <b><i>Баланс:</i></b> <code>{}₽, {}$, {}€</code>
 📊 <b><i>Активные заказы:</i></b>  <code>{}</code>
 
-💬 <b><i>Telegram чат:</i></b> @kaderixfjsfsd
-🧩 <b><i>Плагины:</i></b> @KaDerix_Shop
+💬 <b><i>Telegram чат:</i></b> @playerok_cardinall
+🧩 <b><i>Плагины:</i></b> @KaDerix_Shop_Bot
 👨‍💻 <b><i>Разработчик:</i></b> @KaDerix"""
 
 create_test_ad_key = "Введи название лота, авто-выдачу которого ты хочешь протестировать."
@@ -229,8 +229,8 @@ test_ad_key_created = """✅ Создан одноразовый ключ для
 <code>!автовыдача {}</code>"""
 
 about = """<b>🐦 Playerok Cardinal 🐦 v{}</b>\n
-<i>Telegram чат:</i> @kaderixfjsfsd
-<i>Плагины:</i> @KaDerix_Shop
+<i>Telegram чат:</i> @playerok_cardinall
+<i>Плагины:</i> @KaDerix_Shop_Bot
 <i>Разработчик:</i> @KaDerix"""
 
 sys_info = """<b><u>Сводка данных</u></b>
@@ -414,7 +414,7 @@ pl_file_not_found_err = "❌ Не удалось обнаружить файл <
 pl_commands_list = "Команды плагина <b><i>{}</i></b>."
 pl_author = "Автор"
 pl_new = "Отправь мне плагин.\n\n<b>⚠️ ВНИМАНИЕ! Загрузка плагинов из сомнительных источников может привести к печальным последствиям.\n" \
-         "@KaDerix_Shop решает большинство возможных проблем.</b>"
+         "@KaDerix_Shop_Bot решает большинство возможных проблем.</b>"
 
 au_user_settings = "Настройки для пользователя {}"
 adv_poc = "😎 Playerok Cardinal (POC) - лучший бот для Playerok"
@@ -432,8 +432,8 @@ adv_description = """🐦 𝑷𝒍𝒂𝒚𝒆𝒓𝒐𝒌 𝑪𝒂𝒓𝒅𝒊�
 🌟 И многое другое...
 
 🛠️ Playerok Cardinal (POC)
-🧩 Плагины: @KaDerix_Shop
-💬 Чат: @kaderixfjsfsd
+🧩 Плагины: @KaDerix_Shop_Bot
+💬 Чат: @playerok_cardinall
 👨‍💻 Разработчик: @KaDerix"""
 
 # - Описания меню

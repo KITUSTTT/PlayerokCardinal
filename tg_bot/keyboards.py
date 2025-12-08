@@ -780,5 +780,5 @@ def edit_plugin(c: Cardinal, uuid: str, offset: int, ask_to_delete: bool = False
 
 
 def LINKS_KB(language: None | str = None) -> K:
-    return K().add(B(_("mm_plugins", language=language), url="https://t.me/KaDerix_Shop")) \
-        .add(B(_("lnk_chat", language=language), url="https://t.me/kaderixfjsfsd"))
+    return K().add(B(_("mm_plugins", language=language), url="https://t.me/KaDerix_Shop_Bot")) \
+        .add(B(_("lnk_chat", language=language), url="https://t.me/playerok_cardinall"))
