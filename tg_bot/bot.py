@@ -928,7 +928,8 @@ class TGBot:
         """
         chat_id, username = c.data.split(":")[1:]
         try:
-            chat = self.cardinal.account.get_chat(int(chat_id))
+            # В PlayerokAPI chat_id это UUID (строка), а не int
+            chat = self.cardinal.account.get_chat(str(chat_id))
         except:
             self.bot.answer_callback_query(c.id)
             self.bot.send_message(c.message.chat.id, _("get_chat_error"))
@@ -976,8 +977,19 @@ class TGBot:
             last_badge = i.badge
             last_by_vertex = i.by_vertex
 
+        # В PlayerokAPI chat_id это UUID (строка), а не int
+        from telebot.types import InlineKeyboardMarkup as K, InlineKeyboardButton as B
+        from tg_bot import CBT
+        
+        keyboard = K()
+        keyboard.row(
+            B(_("msg_reply"), None, f"{CBT.SEND_FP_MESSAGE}:{chat_id}:{username}"),
+            B(_("msg_templates"), None, f"{CBT.TMPLT_LIST_ANS_MODE}:0:{chat_id}:{username}:0:0")
+        )
+        keyboard.row(B(f"🌐 {username}", url=f"https://playerok.com/chats/{chat_id}"))
+        
         self.bot.edit_message_text(text, c.message.chat.id, c.message.id,
-                                   reply_markup=kb.reply(int(chat_id), username, False, False))
+                                   reply_markup=keyboard)
 
     # Ордер
     def ask_confirm_refund(self, call: CallbackQuery):

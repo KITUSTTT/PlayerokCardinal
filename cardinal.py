@@ -143,6 +143,11 @@ class Cardinal(object):
         self.item_paid_handlers = []
         self.item_sent_handlers = []
         self.deal_confirmed_handlers = []
+        self.new_review_handlers = []
+        self.deal_rolled_back_handlers = []
+        self.deal_has_problem_handlers = []
+        self.deal_problem_resolved_handlers = []
+        self.deal_status_changed_handlers = []
         
         self.balance = None
         
@@ -165,6 +170,11 @@ class Cardinal(object):
             "BIND_TO_ITEM_PAID": self.item_paid_handlers,
             "BIND_TO_ITEM_SENT": self.item_sent_handlers,
             "BIND_TO_DEAL_CONFIRMED": self.deal_confirmed_handlers,
+            "BIND_TO_NEW_REVIEW": self.new_review_handlers,
+            "BIND_TO_DEAL_ROLLED_BACK": self.deal_rolled_back_handlers,
+            "BIND_TO_DEAL_HAS_PROBLEM": self.deal_has_problem_handlers,
+            "BIND_TO_DEAL_PROBLEM_RESOLVED": self.deal_problem_resolved_handlers,
+            "BIND_TO_DEAL_STATUS_CHANGED": self.deal_status_changed_handlers,
         }
 
     def get_balance(self):
@@ -298,10 +308,15 @@ class Cardinal(object):
         events_handlers = {
             PlayerokAPI.enums.EventTypes.CHAT_INITIALIZED: self.chat_initialized_handlers,
             PlayerokAPI.enums.EventTypes.NEW_MESSAGE: self.new_message_handlers,
-            PlayerokAPI.enums.EventTypes.NEW_DEAL: self.new_deal_handlers,  # Исправлено: было new_order_handlers
+            PlayerokAPI.enums.EventTypes.NEW_DEAL: self.new_deal_handlers,
+            PlayerokAPI.enums.EventTypes.NEW_REVIEW: self.new_review_handlers,
             PlayerokAPI.enums.EventTypes.ITEM_PAID: self.item_paid_handlers,
             PlayerokAPI.enums.EventTypes.ITEM_SENT: self.item_sent_handlers,
             PlayerokAPI.enums.EventTypes.DEAL_CONFIRMED: self.deal_confirmed_handlers,
+            PlayerokAPI.enums.EventTypes.DEAL_ROLLED_BACK: self.deal_rolled_back_handlers,
+            PlayerokAPI.enums.EventTypes.DEAL_HAS_PROBLEM: self.deal_has_problem_handlers,
+            PlayerokAPI.enums.EventTypes.DEAL_PROBLEM_RESOLVED: self.deal_problem_resolved_handlers,
+            PlayerokAPI.enums.EventTypes.DEAL_STATUS_CHANGED: self.deal_status_changed_handlers,
         }
         
         requests_delay = int(self.MAIN_CFG["Other"].get("requestsDelay", "4"))
