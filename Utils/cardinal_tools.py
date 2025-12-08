@@ -133,10 +133,18 @@ def load_proxy_dict() -> dict[int, str]:
         
         try:
             proxy = json.loads(proxy)
-            proxy = {int(k): v for k, v in proxy.items()}
+            # Фильтруем только числовые ключи и конвертируем их в int
+            result = {}
+            for k, v in proxy.items():
+                try:
+                    key = int(k)
+                    result[key] = v
+                except (ValueError, TypeError):
+                    # Пропускаем нечисловые ключи (например, "http", "https")
+                    continue
+            return result
         except json.decoder.JSONDecodeError:
             return {}
-        return proxy
 
 
 def cache_disabled_plugins(disabled_plugins: list[str]) -> None:

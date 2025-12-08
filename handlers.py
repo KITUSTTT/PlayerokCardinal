@@ -46,6 +46,13 @@ def send_new_message_notification(c: Cardinal, event: NewMessageEvent):
         if hasattr(message.user, 'id') and str(message.user.id) == str(c.account.id):
             return
     
+    # Проверяем, не является ли сообщение командой (как в FunPayCardinal)
+    if message.text:
+        mtext = message.text.strip().lower()
+        if mtext in c.AR_CFG:
+            # Если это команда, не отправляем уведомление (ответ отправит send_response_handler)
+            return
+    
     # Получаем имя автора
     if hasattr(message, 'user') and message.user:
         author_username = message.user.username if hasattr(message.user, 'username') else str(message.user.id)

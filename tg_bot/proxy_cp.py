@@ -120,7 +120,9 @@ def init_proxy_cp(crd: Cardinal, *args):
             if proxy_str in crd.proxy_dict.values():
                 bot.send_message(m.chat.id, _("proxy_already_exists").format(utils.escape(proxy_str)), reply_markup=kb)
                 return
-            max_id = max(crd.proxy_dict.keys(), default=-1)
+            # Получаем максимальный числовой ключ, фильтруя нечисловые
+            numeric_keys = [k for k in crd.proxy_dict.keys() if isinstance(k, int)]
+            max_id = max(numeric_keys, default=-1) if numeric_keys else -1
             crd.proxy_dict[max_id + 1] = proxy_str
             cache_proxy_dict(crd.proxy_dict)
             bot.send_message(m.chat.id, _("proxy_added").format(utils.escape(proxy_str)), reply_markup=kb)
@@ -135,13 +137,26 @@ def init_proxy_cp(crd: Cardinal, *args):
         """
         Выбор прокси из списка.
         """
-        q, offset, proxy_id = c.data.split(":")
-        offset = int(offset)
-        proxy_id = int(proxy_id)
-        proxy = crd.proxy_dict.get(proxy_id)
-        c.data = f"{CBT.PROXY}:{offset}"
-        if not proxy:
-            open_proxy_list(c)
+        try:
+            q, offset, proxy_id = c.data.split(":")
+            offset = int(offset)
+            # Пытаемся преобразовать proxy_id в int
+            try:
+                proxy_id = int(proxy_id)
+            except ValueError:
+                # Если proxy_id не число, значит это старый формат или ошибка
+                logger.error(f"Некорректный proxy_id в callback_data: {proxy_id}")
+                bot.answer_callback_query(c.id, text="Ошибка: некорректный формат прокси", show_alert=True)
+                open_proxy_list(c)
+                return
+            proxy = crd.proxy_dict.get(proxy_id)
+            c.data = f"{CBT.PROXY}:{offset}"
+            if not proxy:
+                open_proxy_list(c)
+                return
+        except (ValueError, IndexError) as e:
+            logger.error(f"Ошибка парсинга callback_data для choose_proxy: {c.data}, ошибка: {e}")
+            bot.answer_callback_query(c.id, text="Ошибка: некорректный формат данных", show_alert=True)
             return
 
         login, password, ip, port = validate_proxy(proxy)
