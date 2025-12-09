@@ -10,6 +10,10 @@ import Utils.exceptions
 from locales.localizer import Localizer
 import logging
 import time
+import os
+import json
+import tempfile
+import requests
 
 logger = logging.getLogger("POC.handlers")
 localizer = Localizer()
@@ -540,11 +544,18 @@ def send_deal_status_changed_notification(c: Cardinal, event: DealStatusChangedE
     
     status_name = str(deal.status) if hasattr(deal, 'status') else "Неизвестный"
     
-    notification_text = f"🔄 <b>Статус сделки изменен</b>\n\n"
-    notification_text += f"👤 <b>Покупатель:</b> {buyer_username}\n"
-    notification_text += f"📦 <b>Товар:</b> {item_name}\n"
-    notification_text += f"📊 <b>Новый статус:</b> {status_name}\n"
-    notification_text += f"🆔 <b>ID сделки:</b> <code>{deal.id}</code>"
+    if status_name == "ROLLED_BACK":
+        notification_text = f"⚠️ <b>Заказ был возвращен (ручной возврат)</b>\n\n"
+        notification_text += f"🆔 <b>ID заказа:</b> <code>{deal.id}</code>\n"
+        notification_text += f"👤 <b>Покупатель:</b> {buyer_username}\n"
+        notification_text += f"📦 <b>Товар:</b> {item_name}\n"
+        notification_text += f"📊 <b>Статус заказа изменился на ROLLED_BACK</b>"
+    else:
+        notification_text = f"🔄 <b>Статус сделки изменен</b>\n\n"
+        notification_text += f"👤 <b>Покупатель:</b> {buyer_username}\n"
+        notification_text += f"📦 <b>Товар:</b> {item_name}\n"
+        notification_text += f"📊 <b>Новый статус:</b> {status_name}\n"
+        notification_text += f"🆔 <b>ID сделки:</b> <code>{deal.id}</code>"
     
     keyboard = create_deal_keyboard(str(chat.id), buyer_username, deal.id)
     
@@ -552,6 +563,562 @@ def send_deal_status_changed_notification(c: Cardinal, event: DealStatusChangedE
     from threading import Thread
     Thread(target=c.telegram.send_notification, args=(notification_text, keyboard, NotificationTypes.other),
            daemon=True).start()
+
+def auto_restore_handler(c: Cardinal, event: ItemSentEvent):
+    """
+    Автоматически перевыставляет проданный товар после отправки.
+    Поддерживает режимы: free (всегда бесплатно), premium (премиум если хватает баланса, иначе бесплатно).
+    """
+    if not c.autorestore_enabled:
+        return
+    
+    deal = event.deal
+    if not deal or not deal.item:
+        return
+    
+    item_id = deal.item.id
+    item_name = deal.item.name
+    
+    logger.info(f"Запуск авто-восстановления для товара {item_name} (ID: {item_id})")
+    
+    try:
+        item_details = c.account.get_item(id=item_id)
+        if not item_details:
+            logger.warning(f"Не удалось получить детали товара {item_name} (ID: {item_id})")
+            return
+        
+        restore_mode = c.MAIN_CFG["Playerok"].get("restorePriorityMode", "premium")
+        
+        balance = None
+        price_premium = None
+        status_premium_id = None
+        status_free_id = "1efbe5bc-99a7-68e5-4534-85dad913b981"
+        
+        if restore_mode == "premium":
+            for attempt in range(3):
+                try:
+                    balance_obj = c.get_balance()
+                    balance = balance_obj.available if balance_obj and balance_obj.available else 0
+                    logger.info(f"Баланс получен: {balance}")
+                    break
+                except Exception as e:
+                    logger.warning(f"Ошибка получения баланса (попытка {attempt+1}): {e}")
+                    if attempt == 2:
+                        balance = None
+                    else:
+                        time.sleep(1)
+            
+            item_price = str(item_details.price) if item_details.price else "0"
+            for attempt in range(3):
+                try:
+                    priority_statuses = c.account.get_item_priority_statuses(item_id, item_price)
+                    if priority_statuses:
+                        for status in priority_statuses:
+                            status_price = status.price if hasattr(status, 'price') else 0
+                            if status_price > 0:
+                                if price_premium is None or status_price < price_premium:
+                                    price_premium = status_price
+                                    status_premium_id = status.id if hasattr(status, 'id') else None
+                    logger.info(f"Цена премиума получена: {price_premium}")
+                    break
+                except Exception as e:
+                    logger.warning(f"Ошибка получения цены премиума (попытка {attempt+1}): {e}")
+                    if attempt == 2:
+                        price_premium = None
+                    else:
+                        time.sleep(1)
+        
+        from PlayerokAPI.types import MyItem
+        is_my_item = isinstance(item_details, MyItem)
+        
+        if is_my_item and item_details.is_editable:
+            if restore_mode == "free":
+                status = status_free_id
+            elif restore_mode == "premium":
+                if balance is not None and price_premium is not None and status_premium_id and float(price_premium) <= float(balance):
+                    status = status_premium_id
+                    logger.info(f"Достаточно средств для премиум ({price_premium} <= {balance}), используем премиум статус")
+                else:
+                    status = status_free_id
+                    if balance is not None and price_premium is not None:
+                        logger.info(f"Недостаточно средств для премиум ({price_premium} > {balance}), используем бесплатный статус")
+                    else:
+                        logger.info(f"Не удалось получить данные для премиум, используем бесплатный статус")
+            else:
+                status = status_free_id
+            
+            for attempt in range(3):
+                try:
+                    c.account.publish_item(item_id, status)
+                    logger.info(f"Товар {item_name} (ID: {item_id}) опубликован со статусом {status}")
+                    
+                    if c.telegram:
+                        from tg_bot.utils import NotificationTypes
+                        from threading import Thread
+                        status_text = "премиум" if status == status_premium_id else "бесплатно"
+                        text = f"🔄 <b>Авто-восстановление товара</b>\n\n✅ Товар '{item_name}' перевыставлен ({status_text})\n🆔 ID: {item_id}"
+                        Thread(target=c.telegram.send_notification, args=(text, None, NotificationTypes.lots_restore),
+                               daemon=True).start()
+                    return
+                except Exception as e:
+                    logger.error(f"Ошибка публикации (попытка {attempt+1}): {e}")
+                    if attempt == 2:
+                        raise
+                    time.sleep(1)
+        
+        if not item_details.is_editable:
+            logger.info(f"Товар {item_name} (ID: {item_id}) не редактируемый, создаем новый товар")
+            
+            if restore_mode == "premium" and (balance is None or price_premium is None or status_premium_id is None):
+                for attempt in range(3):
+                    try:
+                        balance_obj = c.get_balance()
+                        balance = balance_obj.available if balance_obj and balance_obj.available else 0
+                        logger.info(f"Баланс получен для нередактируемого товара: {balance}")
+                        break
+                    except Exception as e:
+                        logger.warning(f"Ошибка получения баланса (попытка {attempt+1}): {e}")
+                        if attempt == 2:
+                            balance = None
+                        else:
+                            time.sleep(1)
+                
+                item_price = str(item_details.price) if item_details.price else "0"
+                for attempt in range(3):
+                    try:
+                        priority_statuses = c.account.get_item_priority_statuses(item_id, item_price)
+                        if priority_statuses:
+                            for status in priority_statuses:
+                                status_price = status.price if hasattr(status, 'price') else 0
+                                if status_price > 0:
+                                    if price_premium is None or status_price < price_premium:
+                                        price_premium = status_price
+                                        status_premium_id = status.id if hasattr(status, 'id') else None
+                        logger.info(f"Цена премиума получена для нередактируемого товара: {price_premium}")
+                        break
+                    except Exception as e:
+                        logger.warning(f"Ошибка получения цены премиума (попытка {attempt+1}): {e}")
+                        if attempt == 2:
+                            price_premium = None
+                        else:
+                            time.sleep(1)
+            
+            try:
+                category_id = item_details.category.id if item_details.category else None
+                obtaining_type_id = item_details.obtaining_type.id if item_details.obtaining_type else None
+                
+                if not obtaining_type_id or not category_id:
+                    logger.warning(f"Не удалось получить необходимые данные для товара {item_name}")
+                    return
+                
+                item_data = {
+                    "category": {"id": category_id},
+                    "name": item_name,
+                    "price": item_details.price,
+                    "description": item_details.description if hasattr(item_details, 'description') and item_details.description else item_name,
+                    "attributes": item_details.attributes if hasattr(item_details, 'attributes') and item_details.attributes else {},
+                    "dataFields": [
+                        {
+                            "fieldId": field.id,
+                            "value": field.value
+                        }
+                        for field in (item_details.data_fields if hasattr(item_details, 'data_fields') and item_details.data_fields else [])
+                        if hasattr(field, 'type') and hasattr(field, 'id') and hasattr(field, 'value')
+                    ],
+                    "obtainingType": {"id": obtaining_type_id},
+                    "attachments": []
+                }
+                
+                if hasattr(item_details, 'attachments') and item_details.attachments:
+                    for att in item_details.attachments:
+                        if hasattr(att, 'url') and att.url:
+                            item_data["attachments"].append({"url": att.url})
+                
+                if not item_data["attachments"]:
+                    logger.warning(f"Товар {item_name} (ID: {item_id}) не имеет изображений, пропускаем создание")
+                    return
+                
+                temp_image_path = None
+                try:
+                    image_url = item_data["attachments"][0]["url"]
+                    logger.info(f"Скачиваю изображение для товара {item_name} из {image_url}")
+                    
+                    response = requests.get(image_url, stream=True, timeout=30)
+                    response.raise_for_status()
+                    
+                    temp_dir = tempfile.gettempdir()
+                    temp_image_path = os.path.join(temp_dir, f"autorestore_item_{item_id}_{int(time.time())}.jpg")
+                    
+                    with open(temp_image_path, "wb") as f:
+                        for chunk in response.iter_content(chunk_size=1024):
+                            if chunk:
+                                f.write(chunk)
+                    
+                    logger.info(f"Изображение сохранено в {temp_image_path}")
+                    
+                except Exception as download_ex:
+                    logger.error(f"Ошибка скачивания изображения для товара {item_name}: {download_ex}")
+                    if temp_image_path and os.path.exists(temp_image_path):
+                        try:
+                            os.remove(temp_image_path)
+                        except:
+                            pass
+                    return
+                
+                full_query = """mutation createItem($input: CreateItemInput!, $attachments: [Upload!]!) {
+  createItem(input: $input, attachments: $attachments) {
+    ...RegularItem
+    __typename
+  }
+}
+
+fragment RegularItem on Item {
+  ...RegularMyItem
+  ...RegularForeignItem
+  __typename
+}
+
+fragment RegularMyItem on MyItem {
+  ...ItemFields
+  prevPrice
+  priority
+  sequence
+  priorityPrice
+  statusExpirationDate
+  comment
+  viewsCounter
+  statusDescription
+  editable
+  statusPayment {
+    ...StatusPaymentTransaction
+    __typename
+  }
+  moderator {
+    id
+    username
+    __typename
+  }
+  approvalDate
+  deletedAt
+  createdAt
+  updatedAt
+  mayBePublished
+  prevFeeMultiplier
+  sellerNotifiedAboutFeeChange
+  __typename
+}
+
+fragment ItemFields on Item {
+  id
+  slug
+  name
+  description
+  rawPrice
+  price
+  attributes
+  status
+  priorityPosition
+  sellerType
+  feeMultiplier
+  user {
+    ...ItemUser
+    __typename
+  }
+  buyer {
+    ...ItemUser
+    __typename
+  }
+  attachments {
+    ...PartialFile
+    __typename
+  }
+  category {
+    ...RegularGameCategory
+    __typename
+  }
+  game {
+    ...RegularGameProfile
+    __typename
+  }
+  comment
+  dataFields {
+    ...GameCategoryDataFieldWithValue
+    __typename
+  }
+  obtainingType {
+    ...GameCategoryObtainingType
+    __typename
+  }
+  __typename
+}
+
+fragment ItemUser on UserFragment {
+  ...UserEdgeNode
+  __typename
+}
+
+fragment UserEdgeNode on UserFragment {
+  ...RegularUserFragment
+  __typename
+}
+
+fragment RegularUserFragment on UserFragment {
+  id
+  username
+  role
+  avatarURL
+  isOnline
+  isBlocked
+  rating
+  testimonialCounter
+  createdAt
+  supportChatId
+  systemChatId
+  __typename
+}
+
+fragment PartialFile on File {
+  id
+  url
+  __typename
+}
+
+fragment RegularGameCategory on GameCategory {
+  id
+  slug
+  name
+  categoryId
+  gameId
+  obtaining
+  options {
+    ...RegularGameCategoryOption
+    __typename
+  }
+  props {
+    ...GameCategoryProps
+    __typename
+  }
+  noCommentFromBuyer
+  instructionForBuyer
+  instructionForSeller
+  useCustomObtaining
+  autoConfirmPeriod
+  autoModerationMode
+  agreements {
+    ...RegularGameCategoryAgreement
+    __typename
+  }
+  feeMultiplier
+  __typename
+}
+
+fragment RegularGameCategoryOption on GameCategoryOption {
+  id
+  group
+  label
+  type
+  field
+  value
+  valueRangeLimit {
+    min
+    max
+    __typename
+  }
+  __typename
+}
+
+fragment GameCategoryProps on GameCategoryPropsObjectType {
+  minTestimonials
+  minTestimonialsForSeller
+  __typename
+}
+
+fragment RegularGameCategoryAgreement on GameCategoryAgreement {
+  description
+  gameCategoryId
+  gameCategoryObtainingTypeId
+  iconType
+  id
+  sequence
+  __typename
+}
+
+fragment RegularGameProfile on GameProfile {
+  id
+  name
+  type
+  slug
+  logo {
+    ...PartialFile
+    __typename
+  }
+  __typename
+}
+
+fragment GameCategoryDataFieldWithValue on GameCategoryDataFieldWithValue {
+  id
+  label
+  type
+  inputType
+  copyable
+  hidden
+  required
+  value
+  __typename
+}
+
+fragment GameCategoryObtainingType on GameCategoryObtainingType {
+  id
+  name
+  description
+  gameCategoryId
+  noCommentFromBuyer
+  instructionForBuyer
+  instructionForSeller
+  sequence
+  feeMultiplier
+  agreements {
+    ...MinimalGameCategoryAgreement
+    __typename
+  }
+  props {
+    minTestimonialsForSeller
+    __typename
+  }
+  __typename
+}
+
+fragment MinimalGameCategoryAgreement on GameCategoryAgreement {
+  description
+  iconType
+  id
+  sequence
+  __typename
+}
+
+fragment StatusPaymentTransaction on Transaction {
+  id
+  operation
+  direction
+  providerId
+  status
+  statusDescription
+  statusExpirationDate
+  value
+  props {
+    paymentURL
+    __typename
+  }
+  __typename
+}
+
+fragment RegularForeignItem on ForeignItem {
+  ...ItemFields
+  __typename}"""
+                
+                input_data = {
+                    "gameCategoryId": category_id,
+                    "name": item_data["name"],
+                    "price": int(item_data["price"]),
+                    "description": item_data["description"],
+                    "attributes": item_data["attributes"],
+                    "dataFields": item_data["dataFields"],
+                    "obtainingTypeId": obtaining_type_id
+                }
+                
+                operations = {
+                    "operationName": "createItem",
+                    "query": full_query,
+                    "variables": {
+                        "input": input_data,
+                        "attachments": [None]
+                    }
+                }
+                
+                map_field = {
+                    "1": ["variables.attachments.0"]
+                }
+                
+                payload = {
+                    "operations": json.dumps(operations, ensure_ascii=False),
+                    "map": json.dumps(map_field, ensure_ascii=False)
+                }
+                
+                files = {
+                    "1": open(temp_image_path, "rb")
+                }
+                
+                new_item_id = None
+                try:
+                    headers = {"accept": "*/*"}
+                    response = c.account.request("post", f"{c.account.base_url}/graphql", headers, payload, files)
+                    
+                    result = response.json()
+                    if "errors" in result:
+                        raise Exception(f"GraphQL ошибка: {result['errors']}")
+                    
+                    if "data" not in result or "createItem" not in result["data"]:
+                        raise Exception(f"Неожиданный ответ от API: {result}")
+                    
+                    new_item_data = result["data"]["createItem"]
+                    new_item_id = new_item_data["id"]
+                    
+                    logger.info(f"Создан новый товар {new_item_id} для замены нередактируемого товара {item_id}")
+                    
+                    if restore_mode == "free":
+                        status = status_free_id
+                    elif restore_mode == "premium":
+                        if balance is not None and price_premium is not None and status_premium_id and float(price_premium) <= float(balance):
+                            status = status_premium_id
+                            logger.info(f"Достаточно средств для премиум ({price_premium} <= {balance}), используем премиум статус")
+                        else:
+                            status = status_free_id
+                            if balance is not None and price_premium is not None:
+                                logger.info(f"Недостаточно средств для премиум ({price_premium} > {balance}), используем бесплатный статус")
+                            else:
+                                logger.info(f"Не удалось получить данные для премиум, используем бесплатный статус")
+                    else:
+                        status = status_free_id
+                    
+                    for attempt in range(3):
+                        try:
+                            c.account.publish_item(new_item_id, status)
+                            logger.info(f"Новый товар {new_item_id} опубликован со статусом {status}")
+                            
+                            if c.telegram:
+                                from tg_bot.utils import NotificationTypes
+                                from threading import Thread
+                                status_text = "премиум" if status == status_premium_id else "бесплатно"
+                                text = f"🔄 <b>Авто-восстановление товара</b>\n\n✅ Создан и опубликован новый товар '{item_name}' ({status_text})\n🆔 Старый ID: {item_id}\n🆔 Новый ID: {new_item_id}"
+                                Thread(target=c.telegram.send_notification, args=(text, None, NotificationTypes.lots_restore),
+                                       daemon=True).start()
+                            break
+                        except Exception as e:
+                            logger.error(f"Ошибка публикации нового товара (попытка {attempt+1}): {e}")
+                            if attempt == 2:
+                                raise
+                            time.sleep(1)
+                finally:
+                    if "1" in files and not files["1"].closed:
+                        files["1"].close()
+                    
+                    try:
+                        os.remove(temp_image_path)
+                    except:
+                        pass
+                        
+            except Exception as create_ex:
+                logger.error(f"Ошибка при создании нового товара для {item_name}: {create_ex}")
+                logger.debug("TRACEBACK", exc_info=True)
+                if temp_image_path and os.path.exists(temp_image_path):
+                    try:
+                        os.remove(temp_image_path)
+                    except:
+                        pass
+        
+    except Exception as ex:
+        logger.error(f"Общая ошибка при авто-восстановлении товара: {ex}")
+        logger.debug("TRACEBACK", exc_info=True)
 
 def send_bot_started_notification_handler(c: Cardinal, *args):
     """
@@ -615,6 +1182,7 @@ def register_handlers(c: Cardinal):
     c.item_paid_handlers.append(auto_delivery_handler)
     
     c.item_sent_handlers.append(send_item_sent_notification)
+    c.item_sent_handlers.append(auto_restore_handler)
     c.deal_confirmed_handlers.append(send_deal_confirmed_notification)
     c.deal_rolled_back_handlers.append(send_deal_rolled_back_notification)
     c.new_review_handlers.append(send_new_review_notification)

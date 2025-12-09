@@ -41,6 +41,7 @@ def load_main_config(config_path: str):
             "autoResponse": ["0", "1"],
             "autoDelivery": ["0", "1"],
             "autoRestore": ["0", "1"],
+            "restorePriorityMode": ["free", "premium"],
             "oldMsgGetMode": ["0", "1"],
             "keepSentMessagesUnread": ["0", "1"]
         },

@@ -577,7 +577,9 @@ class TGBot:
             self.bot.send_message(m.chat.id, _("logfile_sending"))
             try:
                 with open("logs/log.log", "rb") as f:
-                    self.bot.send_document(m.chat.id, InputFile(f),
+                    from datetime import datetime
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    self.bot.send_document(m.chat.id, InputFile(f, filename=f"PlayerokCardinal_log_{timestamp}.log"),
                                            caption=f'{_("gs_old_msg_mode").replace("{} ", "") if hasattr(self.cardinal, "old_mode_enabled") and self.cardinal.old_mode_enabled else ""}')
                     f.seek(0)
                     file_content = f.read().decode("utf-8", errors="ignore")
@@ -1190,6 +1192,29 @@ class TGBot:
                                            reply_markup=keyboard(self.cardinal, c.message.chat.id))
         self.bot.answer_callback_query(c.id)
 
+    def switch_restore_priority(self, c: CallbackQuery):
+        """
+        Переключает режим авто-восстановления (free <-> premium).
+        """
+        current_mode = self.cardinal.MAIN_CFG.get("Playerok", {}).get("restorePriorityMode", "premium")
+        
+        if current_mode == "free":
+            new_mode = "premium"
+        else:
+            new_mode = "free"
+        
+        if "Playerok" not in self.cardinal.MAIN_CFG:
+            self.cardinal.MAIN_CFG["Playerok"] = {}
+        self.cardinal.MAIN_CFG["Playerok"]["restorePriorityMode"] = new_mode
+        self.cardinal.save_config(self.cardinal.MAIN_CFG, "configs/_main.cfg")
+        
+        mode_text = {"free": "Бесплатно", "premium": "Премиум"}[new_mode]
+        logger.info(f"Режим авто-восстановления изменен на {new_mode} пользователем {c.from_user.username} (id: {c.from_user.id})")
+        
+        self.bot.edit_message_reply_markup(c.message.chat.id, c.message.id,
+                                           reply_markup=kb.main_settings(self.cardinal))
+        self.bot.answer_callback_query(c.id, text=f"Режим восстановления: {mode_text}", show_alert=False)
+
     def open_settings_section(self, c: CallbackQuery):
         """
         Открывает выбранную категорию настроек.
@@ -1356,6 +1381,7 @@ class TGBot:
         self.cbq_handler(self.open_settings_section, lambda c: c.data.startswith(f"{CBT.CATEGORY}:"))
         self.cbq_handler(self.switch_param, lambda c: c.data.startswith(f"{CBT.SWITCH}:"))
         self.cbq_handler(self.switch_chat_notification, lambda c: c.data.startswith(f"{CBT.SWITCH_TG_NOTIFICATIONS}:"))
+        self.cbq_handler(self.switch_restore_priority, lambda c: c.data == CBT.SWITCH_RESTORE_PRIORITY)
         self.cbq_handler(self.power_off, lambda c: c.data.startswith(f"{CBT.SHUT_DOWN}:"))
         self.cbq_handler(self.cancel_power_off, lambda c: c.data == CBT.CANCEL_SHUTTING_DOWN)
         self.cbq_handler(self.cancel_action, lambda c: c.data == CBT.CLEAR_STATE)

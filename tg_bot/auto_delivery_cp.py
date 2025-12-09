@@ -554,7 +554,11 @@ $product""")  # todo
 
             logger.info(_("log_gf_downloaded", c.from_user.username, c.from_user.id, file_name))
             f.seek(0)
-            bot.send_document(c.message.chat.id, f)
+            from telebot.types import InputFile
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"PlayerokCardinal_products_{timestamp}.txt"
+            bot.send_document(c.message.chat.id, InputFile(f, filename=filename))
             bot.answer_callback_query(c.id)
 
     def ask_del_products_file(c: CallbackQuery):

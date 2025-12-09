@@ -11,7 +11,8 @@ default_config = {
         "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "autoResponse": "0",
         "autoDelivery": "0",
-        "autoRestore": "0"
+        "autoRestore": "0",
+        "restorePriorityMode": "premium"
     },
     "Telegram": {
         "enabled": "0",

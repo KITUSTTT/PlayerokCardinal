@@ -340,6 +340,11 @@ extra: str / int - доп. данные для клавиатуры (через 
 
 # Прочее
 SWITCH_TG_NOTIFICATIONS = "31"
+
+SWITCH_RESTORE_PRIORITY = "32"
+"""
+Callback для переключения режима авто-восстановления (free/premium/auto).
+"""
 """
 Callback для вкл. / выкл. определенного типа уведомлений в определенном Telegram чате.
 Использование: switch_tg_notification:chat_id:notification_type

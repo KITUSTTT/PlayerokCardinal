@@ -63,7 +63,16 @@ def init_config_loader_cp(cardinal: Cardinal, *args):
                 bot.answer_callback_query(c.id, _("cfg_empty_err", path), show_alert=True)
                 return
             f.seek(0)
-            bot.send_document(c.message.chat.id, f, caption=text, reply_markup=back_button)
+            from telebot.types import InputFile
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            config_name_map = {
+                "main": "PlayerokCardinal_main_config",
+                "autoResponse": "PlayerokCardinal_auto_response_config",
+                "autoDelivery": "PlayerokCardinal_auto_delivery_config"
+            }
+            filename = f"{config_name_map.get(config_type, 'config')}_{timestamp}.cfg"
+            bot.send_document(c.message.chat.id, InputFile(f, filename=filename), caption=text, reply_markup=back_button)
 
         logger.info(_("log_cfg_downloaded", c.from_user.username, c.from_user.id, path))
         bot.answer_callback_query(c.id)

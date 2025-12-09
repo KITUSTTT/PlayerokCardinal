@@ -98,6 +98,13 @@ def main_settings(c: Cardinal) -> K:
             return '🟢' if section.get(s, "0") == "1" else '🔴'
         return '🟢' if section.getboolean(s) else '🔴'
 
+    def get_restore_mode_text():
+        mode = c.MAIN_CFG.get("Playerok", {}).get("restorePriorityMode", "premium")
+        if mode == "free":
+            return "🔄 Авто-восстановление: Бесплатно"
+        else:
+            return "🔄 Авто-восстановление: Премиум"
+
     kb = K() \
         .row(B(_("gs_autoraise", l('autoRaise')), None, f"{p}:autoRaise"),
              B(_("gs_autoresponse", l('autoResponse')), None, f"{p}:autoResponse")) \
@@ -105,6 +112,7 @@ def main_settings(c: Cardinal) -> K:
              B(_("gs_nultidelivery", l('multiDelivery')), None, f"{p}:multiDelivery")) \
         .row(B(_("gs_autorestore", l('autoRestore')), None, f"{p}:autoRestore"),
              B(_("gs_autodisable", l('autoDisable')), None, f"{p}:autoDisable")) \
+        .row(B(get_restore_mode_text(), None, f"{CBT.SWITCH_RESTORE_PRIORITY}")) \
         .row(B(_("gs_old_msg_mode", l('oldMsgGetMode')), None, f"{p}:oldMsgGetMode"),
              B(f"❔", None, f"{CBT.OLD_MOD_HELP}"))
 
@@ -311,9 +319,7 @@ def notifications_settings(c: Cardinal, chat_id: int) -> K:
         .row(B(_("ns_new_order", l(n.new_order)), None, f"{p}:{n.new_order}"),
              B(_("ns_order_confirmed", l(n.order_confirmed)), None, f"{p}:{n.order_confirmed}")) \
         .row(B(_("ns_lot_activate", l(n.lots_restore)), None, f"{p}:{n.lots_restore}"),
-             B(_("ns_lot_deactivate", l(n.lots_deactivate)), None, f"{p}:{n.lots_deactivate}")) \
-        .row(B(_("ns_delivery", l(n.delivery)), None, f"{p}:{n.delivery}"),
-             B(_("ns_raise", l(n.lots_raise)), None, f"{p}:{n.lots_raise}")) \
+             B(_("ns_delivery", l(n.delivery)), None, f"{p}:{n.delivery}")) \
         .add(B(_("ns_new_review", l(n.review)), None, f"{p}:{n.review}")) \
         .add(B(_("ns_bot_start", l(n.bot_start)), None, f"{p}:{n.bot_start}")) \
         .add(B(_("ns_other", l(n.other)), None, f"{p}:{n.other}")) \
