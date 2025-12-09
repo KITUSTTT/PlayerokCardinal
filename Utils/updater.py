@@ -383,9 +383,23 @@ def install_release(folder_name: str) -> int:
                 continue
 
             if os.path.isfile(source):
-                shutil.copy2(source, i)
+                try:
+                    shutil.copy2(source, i)
+                except PermissionError:
+                    try:
+                        if os.path.exists(i):
+                            os.chmod(i, 0o777)
+                            os.remove(i)
+                        shutil.copy2(source, i)
+                    except Exception as e:
+                        logger.warning(f"Не удалось обновить файл {i}: {e}")
+                        continue
             else:
-                shutil.copytree(source, os.path.join(".", i), dirs_exist_ok=True)
+                try:
+                    shutil.copytree(source, os.path.join(".", i), dirs_exist_ok=True)
+                except PermissionError as e:
+                    logger.warning(f"Не удалось обновить директорию {i}: Permission denied. Попробуйте перезапустить бота.")
+                    continue
         return 0
     except:
         logger.debug("TRACEBACK", exc_info=True)

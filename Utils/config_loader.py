@@ -61,7 +61,8 @@ def load_main_config(config_path: str):
         },
         "Other": {
             "watermark": "any+empty",
-            "requestsDelay": [str(i) for i in range(1, 101)]
+            "requestsDelay": [str(i) for i in range(1, 101)],
+            "language": ["ru", "en", "uk"]
         }
     }
 
@@ -85,6 +86,10 @@ def load_main_config(config_path: str):
                     config.write(f)
             elif section_name == "Playerok" and key == "restorePriorityMode" and key not in section:
                 config.set("Playerok", "restorePriorityMode", "premium")
+                with open(config_path, "w", encoding="utf-8") as f:
+                    config.write(f)
+            elif section_name == "Other" and key == "language" and key not in section:
+                config.set("Other", "language", "ru")
                 with open(config_path, "w", encoding="utf-8") as f:
                     config.write(f)
             

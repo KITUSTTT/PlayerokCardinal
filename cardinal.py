@@ -81,7 +81,8 @@ class Cardinal(object):
         if self.MAIN_CFG["Proxy"].get("enable") == "1":
             if self.MAIN_CFG["Proxy"]["ip"] and self.MAIN_CFG["Proxy"]["port"].isnumeric():
                 from locales.localizer import Localizer
-                localizer = Localizer()
+                language = self.MAIN_CFG.get("Other", {}).get("language", "ru")
+                localizer = Localizer(language)
                 _ = localizer.translate
                 logger.info(_("crd_proxy_detected"))
                 logger.info(_("crd_checking_proxy"))
@@ -199,7 +200,8 @@ class Cardinal(object):
     def __init_account(self):
         """Инициализирует аккаунт"""
         from locales.localizer import Localizer
-        localizer = Localizer()
+        language = self.MAIN_CFG.get("Other", {}).get("language", "ru")
+        localizer = Localizer(language)
         _ = localizer.translate
         
         while True:
@@ -229,7 +231,8 @@ class Cardinal(object):
 
     def init(self):
         from locales.localizer import Localizer
-        localizer = Localizer()
+        language = self.MAIN_CFG.get("Other", {}).get("language", "ru")
+        localizer = Localizer(language)
         _ = localizer.translate
         
         
@@ -473,7 +476,8 @@ class Cardinal(object):
         Импортирует все плагины из папки plugins.
         """
         from locales.localizer import Localizer
-        localizer = Localizer()
+        language = self.MAIN_CFG.get("Other", {}).get("language", "ru")
+        localizer = Localizer(language)
         _ = localizer.translate
         
         if not os.path.exists("plugins"):
@@ -529,7 +533,8 @@ class Cardinal(object):
             except AttributeError:
                 continue
         from locales.localizer import Localizer
-        localizer = Localizer()
+        language = self.MAIN_CFG.get("Other", {}).get("language", "ru")
+        localizer = Localizer(language)
         _ = localizer.translate
         if handlers_count > 0:
             logger.info(_("crd_handlers_registered", plugin.__name__) + f" ({handlers_count} обработчиков)")
