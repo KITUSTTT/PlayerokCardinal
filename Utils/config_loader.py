@@ -75,7 +75,6 @@ def load_main_config(config_path: str):
         for key in values[section_name]:
             valid_values = values[section_name][key]
             
-            # UPDATE: Миграции для добавления отсутствующих параметров
             if section_name == "Playerok" and key == "oldMsgGetMode" and key not in section:
                 config.set("Playerok", "oldMsgGetMode", "0")
                 with open(config_path, "w", encoding="utf-8") as f:
@@ -84,7 +83,10 @@ def load_main_config(config_path: str):
                 config.set("Playerok", "keepSentMessagesUnread", "0")
                 with open(config_path, "w", encoding="utf-8") as f:
                     config.write(f)
-            # END OF UPDATE
+            elif section_name == "Playerok" and key == "restorePriorityMode" and key not in section:
+                config.set("Playerok", "restorePriorityMode", "premium")
+                with open(config_path, "w", encoding="utf-8") as f:
+                    config.write(f)
             
             try:
                 if valid_values == "any":
