@@ -33,12 +33,15 @@ class Localizer:
         :return: форматированный локализированный текст.
         """
         text = variable_name
-        for lang in self.languages.values():
-            if hasattr(lang, variable_name):
-                text = getattr(lang, variable_name)
-                break
-        if language and language in self.languages.keys() and hasattr(self.languages[language], variable_name):
-            text = getattr(self.languages[language], variable_name)
+        target_lang = language if language else self.current_language
+        
+        if target_lang and target_lang in self.languages.keys() and hasattr(self.languages[target_lang], variable_name):
+            text = getattr(self.languages[target_lang], variable_name)
+        else:
+            for lang in self.languages.values():
+                if hasattr(lang, variable_name):
+                    text = getattr(lang, variable_name)
+                    break
 
         args = list(args)
         formats = text.count("{}")
