@@ -321,6 +321,7 @@ def notifications_settings(c: Cardinal, chat_id: int) -> K:
         .row(B(_("ns_lot_activate", l(n.lots_restore)), None, f"{p}:{n.lots_restore}"),
              B(_("ns_delivery", l(n.delivery)), None, f"{p}:{n.delivery}")) \
         .add(B(_("ns_new_review", l(n.review)), None, f"{p}:{n.review}")) \
+        .add(B(_("ns_deal_problem", l(n.deal_problem)), None, f"{p}:{n.deal_problem}")) \
         .add(B(_("ns_bot_start", l(n.bot_start)), None, f"{p}:{n.bot_start}")) \
         .add(B(_("ns_other", l(n.other)), None, f"{p}:{n.other}")) \
         .add(B(_("gl_back"), None, CBT.MAIN))

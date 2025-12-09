@@ -131,6 +131,7 @@ class Cardinal(object):
         self.autoresponse_enabled = self.MAIN_CFG["Playerok"].get("autoResponse") == "1"
         self.autodelivery_enabled = self.MAIN_CFG["Playerok"].get("autoDelivery") == "1"
         self.autorestore_enabled = self.MAIN_CFG["Playerok"].get("autoRestore") == "1"
+        logger.info(f"⚙️ Настройки включены: autoResponse={self.autoresponse_enabled}, autoDelivery={self.autodelivery_enabled}, autoRestore={self.autorestore_enabled}")
         
         # Хэндлеры
         self.pre_init_handlers = []
@@ -316,13 +317,19 @@ class Cardinal(object):
                 break
             
             event_type = event.type
+            logger.info(f"📨 Получено событие: {event_type}")
             if event_type in events_handlers:
+                logger.info(f"📋 Обработка события {event_type}, обработчиков: {len(events_handlers[event_type])}")
                 for handler in events_handlers[event_type]:
                     try:
+                        handler_name = handler.__name__ if hasattr(handler, '__name__') else str(handler)
+                        logger.info(f"🔧 Вызов обработчика: {handler_name}")
                         handler(self, event)
                     except Exception as e:
                         logger.error(f"Ошибка в обработчике события {event_type}: {e}")
                         logger.debug("TRACEBACK", exc_info=True)
+            else:
+                logger.debug(f"⚠️ Событие {event_type} не имеет обработчиков")
 
     def run(self):
         self.run_id += 1
