@@ -232,18 +232,33 @@ class Account:
         else:
             raise CloudflareDetectedException(resp)
         try:
-            if "errors" in resp.json():
+            resp_json = resp.json()
+            if "errors" in resp_json:
                 for attempt in range(3):
                     resp = make_req()
-                    exc = RequestError(resp)
-                    if exc.error_code != 500:
-                        break
+                    try:
+                        resp_json = resp.json()
+                        if "errors" not in resp_json:
+                            break
+                        exc = RequestError(resp)
+                        if exc.error_code != 500:
+                            raise exc
+                    except (ValueError, KeyError):
+                        # Если не удалось распарсить JSON или нет ошибок, продолжаем
+                        if resp.status_code == 200:
+                            break
                     delay = min(120.0, 2 ** attempt)
                     self.__logger.error(f"500 Error Code, пробую отправить запрос снова через {delay} секунд")
                     time.sleep(delay)
                 else:
-                    raise exc
-        except:
+                    try:
+                        exc = RequestError(resp)
+                        raise exc
+                    except (ValueError, KeyError):
+                        # Если не удалось создать RequestError, пробуем RequestFailedError
+                        pass
+        except (ValueError, KeyError):
+            # Если не удалось распарсить JSON, продолжаем
             pass
         if resp.status_code != 200:
            raise RequestFailedError(resp)
@@ -398,8 +413,15 @@ class Account:
             "query": "mutation updateDeal($input: UpdateItemDealInput!) {\n  updateDeal(input: $input) {\n    ...RegularItemDeal\n    __typename\n  }\n}\n\nfragment RegularItemDeal on ItemDeal {\n  id\n  status\n  direction\n  statusExpirationDate\n  statusDescription\n  obtaining\n  hasProblem\n  reportProblemEnabled\n  completedBy {\n    ...MinimalUserFragment\n    __typename\n  }\n  props {\n    ...ItemDealProps\n    __typename\n  }\n  prevStatus\n  completedAt\n  createdAt\n  logs {\n    ...ItemLog\n    __typename\n  }\n  transaction {\n    ...ItemDealTransaction\n    __typename\n  }\n  user {\n    ...UserEdgeNode\n    __typename\n  }\n  chat {\n    ...RegularChatId\n    __typename\n  }\n  item {\n    ...PartialDealItem\n    __typename\n  }\n  testimonial {\n    ...RegularItemDealTestimonial\n    __typename\n  }\n  obtainingFields {\n    ...GameCategoryDataFieldWithValue\n    __typename\n  }\n  commentFromBuyer\n  __typename\n}\n\nfragment MinimalUserFragment on UserFragment {\n  id\n  username\n  role\n  __typename\n}\n\nfragment ItemDealProps on ItemDealProps {\n  autoConfirmPeriod\n  __typename\n}\n\nfragment ItemLog on ItemLog {\n  id\n  event\n  createdAt\n  user {\n    ...UserEdgeNode\n    __typename\n  }\n  __typename\n}\n\nfragment UserEdgeNode on UserFragment {\n  ...RegularUserFragment\n  __typename\n}\n\nfragment RegularUserFragment on UserFragment {\n  id\n  username\n  role\n  avatarURL\n  isOnline\n  isBlocked\n  rating\n  testimonialCounter\n  createdAt\n  supportChatId\n  systemChatId\n  __typename\n}\n\nfragment ItemDealTransaction on Transaction {\n  id\n  operation\n  direction\n  providerId\n  status\n  value\n  createdAt\n  paymentMethodId\n  statusExpirationDate\n  __typename\n}\n\nfragment RegularChatId on Chat {\n  id\n  __typename\n}\n\nfragment PartialDealItem on Item {\n  ...PartialDealMyItem\n  ...PartialDealForeignItem\n  __typename\n}\n\nfragment PartialDealMyItem on MyItem {\n  id\n  slug\n  priority\n  status\n  name\n  price\n  priorityPrice\n  rawPrice\n  statusExpirationDate\n  sellerType\n  approvalDate\n  createdAt\n  priorityPosition\n  viewsCounter\n  feeMultiplier\n  comment\n  attachments {\n    ...RegularFile\n    __typename\n  }\n  user {\n    ...UserEdgeNode\n    __typename\n  }\n  game {\n    ...RegularGameProfile\n    __typename\n  }\n  category {\n    ...MinimalGameCategory\n    __typename\n  }\n  dataFields {\n    ...GameCategoryDataFieldWithValue\n    __typename\n  }\n  obtainingType {\n    ...MinimalGameCategoryObtainingType\n    __typename\n  }\n  __typename\n}\n\nfragment RegularFile on File {\n  id\n  url\n  filename\n  mime\n  __typename\n}\n\nfragment RegularGameProfile on GameProfile {\n  id\n  name\n  type\n  slug\n  logo {\n    ...PartialFile\n    __typename\n  }\n  __typename\n}\n\nfragment PartialFile on File {\n  id\n  url\n  __typename\n}\n\nfragment MinimalGameCategory on GameCategory {\n  id\n  slug\n  name\n  __typename\n}\n\nfragment GameCategoryDataFieldWithValue on GameCategoryDataFieldWithValue {\n  id\n  label\n  type\n  inputType\n  copyable\n  hidden\n  required\n  value\n  __typename\n}\n\nfragment MinimalGameCategoryObtainingType on GameCategoryObtainingType {\n  id\n  name\n  description\n  gameCategoryId\n  noCommentFromBuyer\n  instructionForBuyer\n  instructionForSeller\n  sequence\n  feeMultiplier\n  props {\n    minTestimonialsForSeller\n    __typename\n  }\n  __typename\n}\n\nfragment PartialDealForeignItem on ForeignItem {\n  id\n  slug\n  priority\n  status\n  name\n  price\n  rawPrice\n  sellerType\n  approvalDate\n  priorityPosition\n  createdAt\n  viewsCounter\n  feeMultiplier\n  comment\n  attachments {\n    ...RegularFile\n    __typename\n  }\n  user {\n    ...UserEdgeNode\n    __typename\n  }\n  game {\n    ...RegularGameProfile\n    __typename\n  }\n  category {\n    ...MinimalGameCategory\n    __typename\n  }\n  dataFields {\n    ...GameCategoryDataFieldWithValue\n    __typename\n  }\n  obtainingType {\n    ...MinimalGameCategoryObtainingType\n    __typename\n  }\n  __typename\n}\n\nfragment RegularItemDealTestimonial on Testimonial {\n  id\n  status\n  text\n  rating\n  createdAt\n  updatedAt\n  creator {\n    ...RegularUserFragment\n    __typename\n  }\n  moderator {\n    ...RegularUserFragment\n    __typename\n  }\n  user {\n    ...RegularUserFragment\n    __typename\n  }\n  __typename\n}"
         }
 
-        r = self.request("post", f"{self.base_url}/graphql", headers, payload).json()
-        return item_deal(r["data"]["updateDeal"])
+        r = self.request("post", f"{self.base_url}/graphql", headers, payload)
+        r_json = r.json()
+        if "errors" in r_json:
+            from .exceptions import RequestError
+            raise RequestError(r)
+        if "data" not in r_json or "updateDeal" not in r_json["data"]:
+            from .exceptions import RequestFailedError
+            raise RequestFailedError(r)
+        return item_deal(r_json["data"]["updateDeal"])
 
     def get_games(self, count: int = 24, type: GameTypes | None = None, 
                   after_cursor: str = None) -> types.GameList:
@@ -752,11 +774,27 @@ class Account:
             operations["variables"]["file"] = None
         elif text:
             operations["variables"]["input"]["text"] = text
-        files = {"1": open(photo_file_path, "rb")} if photo_file_path else None
-        map = {"1":["variables.file"]} if photo_file_path else None
-        payload = operations if photo_file_path is None else {"operations": json.dumps(operations), "map": json.dumps(map)}
-        r = self.request("post", f"{self.base_url}/graphql", headers, payload, files).json()
-        return chat_message(r["data"]["createChatMessage"])
+        files = None
+        try:
+            if photo_file_path:
+                files = {"1": open(photo_file_path, "rb")}
+            map = {"1":["variables.file"]} if photo_file_path else None
+            payload = operations if photo_file_path is None else {"operations": json.dumps(operations), "map": json.dumps(map)}
+            r = self.request("post", f"{self.base_url}/graphql", headers, payload, files)
+            r_json = r.json()
+            if "errors" in r_json:
+                from .exceptions import RequestError
+                raise RequestError(r)
+            if "data" not in r_json or "createChatMessage" not in r_json["data"]:
+                from .exceptions import RequestFailedError
+                raise RequestFailedError(r)
+            return chat_message(r_json["data"]["createChatMessage"])
+        finally:
+            if files and "1" in files:
+                try:
+                    files["1"].close()
+                except:
+                    pass
 
     def create_item(self, game_category_id: str, obtaining_type_id: str, name: str, price: int, 
                     description: str, options: list[GameCategoryOption], data_fields: list[GameCategoryDataField],

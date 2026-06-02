@@ -103,6 +103,16 @@ def init_plugins_cp(cardinal: Cardinal, *args):
 
         bot.edit_message_text(text, c.message.chat.id, c.message.id, reply_markup=keyboard)
 
+    def pin_plugin_handler(c: CallbackQuery):
+        split = c.data.split(":")
+        uuid, offset = split[1], int(split[2])
+        if not check_plugin_exists(uuid, c.message):
+            bot.answer_callback_query(c.id)
+            return
+        cardinal.pin_plugin(uuid)
+        c.data = f"{CBT.EDIT_PLUGIN}:{uuid}:{offset}"
+        open_edit_plugin_cp(c)
+
     def toggle_plugin(c: CallbackQuery):
         split = c.data.split(":")
         uuid, offset = split[1], int(split[2])
@@ -181,6 +191,7 @@ def init_plugins_cp(cardinal: Cardinal, *args):
     tg.cbq_handler(open_plugins_list, lambda c: c.data.startswith(f"{CBT.PLUGINS_LIST}:"))
     tg.cbq_handler(open_edit_plugin_cp, lambda c: c.data.startswith(f"{CBT.EDIT_PLUGIN}:"))
     tg.cbq_handler(open_plugin_commands, lambda c: c.data.startswith(f"{CBT.PLUGIN_COMMANDS}:"))
+    tg.cbq_handler(pin_plugin_handler, lambda c: c.data.startswith(f"{CBT.PIN_PLUGIN}:"))
     tg.cbq_handler(toggle_plugin, lambda c: c.data.startswith(f"{CBT.TOGGLE_PLUGIN}:"))
 
     tg.cbq_handler(ask_delete_plugin, lambda c: c.data.startswith(f"{CBT.DELETE_PLUGIN}:"))

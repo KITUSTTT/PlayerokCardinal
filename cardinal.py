@@ -31,7 +31,8 @@ class PluginData:
     """
 
     def __init__(self, name: str, version: str, desc: str, credentials: str, uuid: str,
-                 path: str, plugin: ModuleType, settings_page: bool, delete_handler: Callable | None, enabled: bool):
+                 path: str, plugin: ModuleType, settings_page: bool, delete_handler: Callable | None, enabled: bool,
+                 pinned: bool = False):
         """
         :param name: название плагина.
         :param version: версия плагина.
@@ -56,6 +57,7 @@ class PluginData:
         self.commands = {}
         self.delete_handler = delete_handler
         self.enabled = enabled
+        self.pinned = pinned
 
 
 class Cardinal(object):
@@ -128,19 +130,66 @@ class Cardinal(object):
         self.instance_id = id(self)
         self.blacklist = cardinal_tools.load_blacklist()
         
-        self.autoresponse_enabled = self.MAIN_CFG["Playerok"].get("autoResponse") == "1"
-        self.autodelivery_enabled = self.MAIN_CFG["Playerok"].get("autoDelivery") == "1"
-        self.autorestore_enabled = self.MAIN_CFG["Playerok"].get("autoRestore") == "1"
-        logger.info(f"⚙️ Настройки включены: autoResponse={self.autoresponse_enabled}, autoDelivery={self.autodelivery_enabled}, autoRestore={self.autorestore_enabled}")
-        
-        # Хэндлеры
+        pk = self.MAIN_CFG["Playerok"]
+        cardinal_tools.ensure_automation_configs()
+        self.auto_bump_cfg = cardinal_tools.load_json_config("configs/auto_bump.json", cardinal_tools.DEFAULT_AUTO_BUMP)
+        self.auto_complete_cfg = cardinal_tools.load_json_config(
+            "configs/auto_complete.json", cardinal_tools.DEFAULT_AUTO_COMPLETE
+        )
+        self.auto_withdrawal_cfg = cardinal_tools.load_json_config(
+            "configs/auto_withdrawal.json", cardinal_tools.DEFAULT_AUTO_WITHDRAWAL
+        )
+        self._init_handlers_and_plugins()
+        logger.info(
+            f"⚙️ Настройки: autoResponse={self.autoresponse_enabled}, autoDelivery={self.autodelivery_enabled}, "
+            f"autoRestore={self.autorestore_enabled}, autoRaise={self.autoraise_enabled}, "
+            f"multiDelivery={self.multidelivery_enabled}, autoDisable={self.autodisable_enabled}, "
+            f"autoComplete={self.autocomplete_enabled}, autoWithdrawal={self.autowithdrawal_enabled}"
+        )
+
+    def _pk_flag(self, key: str) -> bool:
+        return self.MAIN_CFG.get("Playerok", {}).get(key, "0") == "1"
+
+    @property
+    def autoresponse_enabled(self) -> bool:
+        return self._pk_flag("autoResponse")
+
+    @property
+    def autodelivery_enabled(self) -> bool:
+        return self._pk_flag("autoDelivery")
+
+    @property
+    def autorestore_enabled(self) -> bool:
+        return self._pk_flag("autoRestore")
+
+    @property
+    def autoraise_enabled(self) -> bool:
+        return self._pk_flag("autoRaise")
+
+    @property
+    def multidelivery_enabled(self) -> bool:
+        return self._pk_flag("multiDelivery")
+
+    @property
+    def autodisable_enabled(self) -> bool:
+        return self._pk_flag("autoDisable")
+
+    @property
+    def autocomplete_enabled(self) -> bool:
+        return self._pk_flag("autoCompleteDeals")
+
+    @property
+    def autowithdrawal_enabled(self) -> bool:
+        return self._pk_flag("autoWithdrawal")
+
+    def _init_handlers_and_plugins(self):  # noqa: PLR0915
         self.pre_init_handlers = []
         self.post_init_handlers = []
         self.pre_start_handlers = []
         self.post_start_handlers = []
         self.pre_stop_handlers = []
         self.post_stop_handlers = []
-        
+
         self.new_message_handlers = []
         self.new_order_handlers = []
         self.chat_initialized_handlers = []
@@ -153,13 +202,14 @@ class Cardinal(object):
         self.deal_has_problem_handlers = []
         self.deal_problem_resolved_handlers = []
         self.deal_status_changed_handlers = []
-        
+
         self.balance = None
-        
-        # Плагины
+
         self.plugins: dict[str, PluginData] = {}
         self.disabled_plugins = cardinal_tools.load_disabled_plugins()
-        
+        self.pinned_plugins = cardinal_tools.load_pinned_plugins()
+        self._automation_threads_started = False
+
         self.handler_bind_var_names = {
             "BIND_TO_PRE_INIT": self.pre_init_handlers,
             "BIND_TO_POST_INIT": self.post_init_handlers,
@@ -331,11 +381,22 @@ class Cardinal(object):
             else:
                 logger.debug(f"⚠️ Событие {event_type} не имеет обработчиков")
 
+    def start_automation_threads(self):
+        if self._automation_threads_started:
+            return
+        self._automation_threads_started = True
+        from Utils import playerok_automation
+        Thread(target=playerok_automation.bump_items_loop, args=(self,), daemon=True).start()
+        Thread(target=playerok_automation.withdrawal_loop, args=(self,), daemon=True).start()
+        Thread(target=playerok_automation.auto_disable_loop, args=(self,), daemon=True).start()
+        logger.info("Фоновые потоки автоматизации запущены")
+
     def run(self):
         self.run_id += 1
         self.running = True
         self.start_time = int(time.time())
-        
+        self.start_automation_threads()
+
         try:
             self.process_events()
         except KeyboardInterrupt:
@@ -514,9 +575,12 @@ class Cardinal(object):
                 logger.error(_("crd_uuid_already_registered", data['UUID'], data['NAME']))
                 continue
 
-            plugin_data = PluginData(data["NAME"], data["VERSION"], data["DESCRIPTION"], data["CREDITS"], data["UUID"],
-                                     f"plugins/{file}", plugin, data["SETTINGS_PAGE"], data["BIND_TO_DELETE"],
-                                     False if data["UUID"] in self.disabled_plugins else True)
+            plugin_data = PluginData(
+                data["NAME"], data["VERSION"], data["DESCRIPTION"], data["CREDITS"], data["UUID"],
+                f"plugins/{file}", plugin, data["SETTINGS_PAGE"], data["BIND_TO_DELETE"],
+                False if data["UUID"] in self.disabled_plugins else True,
+                True if data["UUID"] in self.pinned_plugins else False,
+            )
 
             self.plugins[data["UUID"]] = plugin_data
 
@@ -564,6 +628,25 @@ class Cardinal(object):
         elif not self.plugins[uuid].enabled and uuid not in self.disabled_plugins:
             self.disabled_plugins.append(uuid)
         cardinal_tools.cache_disabled_plugins(self.disabled_plugins)
+
+    def pin_plugin(self, uuid: str):
+        self.plugins[uuid].pinned = not self.plugins[uuid].pinned
+        if not self.plugins[uuid].pinned and uuid in self.pinned_plugins:
+            self.pinned_plugins.remove(uuid)
+        elif self.plugins[uuid].pinned and uuid not in self.pinned_plugins:
+            self.pinned_plugins.append(uuid)
+        cardinal_tools.cache_pinned_plugins(self.pinned_plugins)
+
+    def reload_automation_cfg(self):
+        self.auto_bump_cfg = cardinal_tools.load_json_config(
+            "configs/auto_bump.json", cardinal_tools.DEFAULT_AUTO_BUMP
+        )
+        self.auto_complete_cfg = cardinal_tools.load_json_config(
+            "configs/auto_complete.json", cardinal_tools.DEFAULT_AUTO_COMPLETE
+        )
+        self.auto_withdrawal_cfg = cardinal_tools.load_json_config(
+            "configs/auto_withdrawal.json", cardinal_tools.DEFAULT_AUTO_WITHDRAWAL
+        )
 
     def add_telegram_commands(self, uuid: str, commands: list[tuple[str, str, bool]]):
         """

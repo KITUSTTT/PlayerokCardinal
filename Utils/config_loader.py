@@ -41,6 +41,11 @@ def load_main_config(config_path: str):
             "autoResponse": ["0", "1"],
             "autoDelivery": ["0", "1"],
             "autoRestore": ["0", "1"],
+            "autoRaise": ["0", "1"],
+            "multiDelivery": ["0", "1"],
+            "autoDisable": ["0", "1"],
+            "autoCompleteDeals": ["0", "1"],
+            "autoWithdrawal": ["0", "1"],
             "restorePriorityMode": ["free", "premium"],
             "oldMsgGetMode": ["0", "1"],
             "keepSentMessagesUnread": ["0", "1"]
@@ -49,6 +54,7 @@ def load_main_config(config_path: str):
             "enabled": ["0", "1"],
             "token": "any+empty",
             "secretKeyHash": "any",
+            "proxy": "any+empty",
             "blockLogin": ["0", "1"]
         },
         "Proxy": {
@@ -88,8 +94,18 @@ def load_main_config(config_path: str):
                 config.set("Playerok", "restorePriorityMode", "premium")
                 with open(config_path, "w", encoding="utf-8") as f:
                     config.write(f)
+            elif section_name == "Playerok" and key in (
+                "autoRaise", "multiDelivery", "autoDisable", "autoCompleteDeals", "autoWithdrawal"
+            ) and key not in section:
+                config.set("Playerok", key, "0")
+                with open(config_path, "w", encoding="utf-8") as f:
+                    config.write(f)
             elif section_name == "Other" and key == "language" and key not in section:
                 config.set("Other", "language", "ru")
+                with open(config_path, "w", encoding="utf-8") as f:
+                    config.write(f)
+            elif section_name == "Telegram" and key == "proxy" and key not in section:
+                config.set("Telegram", "proxy", "")
                 with open(config_path, "w", encoding="utf-8") as f:
                     config.write(f)
             
@@ -160,11 +176,16 @@ def load_auto_delivery_config(config_path: str):
             if "$product" not in response:
                 raise NoProductVarError()
 
-            result.append({
+            entry = {
                 "lot_id": lot_id,
                 "goods_file": goods_file,
-                "response": response
-            })
+                "response": response,
+            }
+            for opt in ("disableMultiDelivery", "disableAutoDisable", "disableAutoRestore"):
+                val = check_param(opt, section, valid_values=["0", "1"], raise_if_not_exists=False)
+                if val is not None:
+                    entry[opt] = val
+            result.append(entry)
         except (ParamNotFoundError, EmptyValueError, ProductsFileNotFoundError, NoProductVarError) as e:
             raise ConfigParseError(config_path, section_name, e)
     return result

@@ -243,6 +243,17 @@ if [ ! -f "/home/$username/PlayerokCardinal/configs/_main.cfg" ]; then
     echo -e "\n${GREEN}✓ Первичная настройка завершена!${RESET}\n"
 else
     echo -e "\n${CYAN}Конфиг уже существует, пропускаю первичную настройку.${RESET}\n"
+    echo -ne "\n${RED}Файл конфигурации найден.${RESET} Хотите добавить Telegram прокси? [y/n]:  "
+    read edit_config
+    case "$edit_config" in
+        [yY]|[yY][eE][sS])
+            echo -ne "${CYAN}Запускаем редактирование Telegram прокси...${RESET}\n\n"
+            sudo -u $username LANG=en_US.utf8 /home/$username/pyvenv/bin/python -W ignore::SyntaxWarning /home/$username/PlayerokCardinal/setup_telegram_proxy.py <&1
+            ;;
+        *)
+            echo -ne "${CYAN}Редактирование пропущено.${RESET}"
+            ;;
+    esac
 fi
 
 sleep 2

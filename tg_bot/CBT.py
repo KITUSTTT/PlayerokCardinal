@@ -547,6 +547,12 @@ UUID: str - UUID плагина.
 offset: int - смещение списка плагинов.
 """
 
+PIN_PLUGIN = "73"
+"""
+Callback для закрепления плагина.
+Использование: CBT.PIN_PLUGIN:UUID:offset
+"""
+
 UPLOAD_PLUGIN = "52"
 """
 Callback для активации режима ожидания отправки файла-плагина.

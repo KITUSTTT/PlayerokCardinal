@@ -190,7 +190,10 @@ def auto_delivery_handler(c: Cardinal, event: NewDealEvent | ItemPaidEvent):
         return
     
     amount = 1
-    
+    if c.multidelivery_enabled and delivery_config.get("disableMultiDelivery") not in ("1", True):
+        item_name = deal.item.name if hasattr(deal, "item") and deal.item else ""
+        amount = cardinal_tools.parse_delivery_amount_from_name(item_name, 1)
+
     try:
         result = cardinal_tools.get_products(goods_file, amount)
         if result is None:
@@ -237,6 +240,8 @@ def auto_delivery_handler(c: Cardinal, event: NewDealEvent | ItemPaidEvent):
 📋 <b><i>Осталось товаров: </i></b>{amount}"""
             Thread(target=c.telegram.send_notification, args=(text, None, NotificationTypes.delivery),
                    daemon=True).start()
+        from Utils import playerok_automation
+        playerok_automation.process_auto_disable_for_lot(c, lot_id, delivery_config)
 
 def chat_initialized_handler(c: Cardinal, event: ChatInitializedEvent):
     chat = event.chat
@@ -310,8 +315,6 @@ def send_new_deal_notification(c: Cardinal, event: NewDealEvent):
     Thread(target=c.telegram.send_notification, args=(text, keyboard, NotificationTypes.new_order),
            daemon=True).start()
 
-def send_item_paid_notification(c: Cardinal, event: ItemPaidEvent):
-    pass
 
 def send_item_sent_notification(c: Cardinal, event: ItemSentEvent):
     pass
@@ -1036,12 +1039,14 @@ def register_handlers(c: Cardinal):
     
     c.new_deal_handlers.append(send_new_deal_notification)
     c.new_deal_handlers.append(auto_delivery_handler)
+
+    from Utils import playerok_automation
+    c.new_deal_handlers.append(playerok_automation.try_auto_complete_deal)
     
-    c.item_paid_handlers.append(send_item_paid_notification)
     c.item_paid_handlers.append(auto_delivery_handler)
+    c.item_paid_handlers.append(auto_restore_handler)
     
     c.item_sent_handlers.append(send_item_sent_notification)
-    c.item_paid_handlers.append(auto_restore_handler)
     c.deal_confirmed_handlers.append(send_deal_confirmed_notification)
     c.deal_rolled_back_handlers.append(send_deal_rolled_back_notification)
     c.new_review_handlers.append(send_new_review_notification)

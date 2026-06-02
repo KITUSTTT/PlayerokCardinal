@@ -1,4 +1,1 @@
-@echo off
-title Playerok Cardinal
-python main.py
-pause
+start python main.py

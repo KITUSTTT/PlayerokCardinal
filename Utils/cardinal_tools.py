@@ -87,6 +87,50 @@ def validate_proxy(proxy: str):
     port = result.group("port")
     return login, password, ip, port
 
+
+def validate_proxy_url(proxy: str):
+    """
+    Парсит прокси с поддержкой scheme:// (для Telegram и полных URL).
+
+    :param proxy: прокси
+    :return: scheme, login, password, ip, port
+    """
+    if "://" in proxy:
+        scheme, rest = proxy.split("://", 1)
+    else:
+        scheme = "http"
+        rest = proxy
+
+    if "@" in rest:
+        login_password, ip_port = rest.split("@", 1)
+        login, password = login_password.split(":", 1)
+    else:
+        login, password = "", ""
+        ip_port = rest
+
+    ip, port = ip_port.split(":")
+
+    ip_parts = ip.split(".")
+    if len(ip_parts) != 4 or not all(part.isdigit() and 0 <= int(part) < 256 for part in ip_parts):
+        raise ValueError("Неправильный IP")
+
+    if not port.isdigit() or not 0 < int(port) <= 65535:
+        raise ValueError("Неправильный порт")
+
+    if scheme not in ("http", "https", "socks5", "socks5h"):
+        raise ValueError("Схема прокси должна быть http, https, socks5 или socks5h")
+
+    return scheme, login, password, ip, port
+
+
+def build_proxy(scheme: str | None, login: str, password: str, ip: str, port: str) -> str:
+    if not scheme:
+        scheme = "http"
+    if login and password:
+        return f"{scheme}://{login}:{password}@{ip}:{port}"
+    return f"{scheme}://{ip}:{port}"
+
+
 def hash_password(password: str) -> str:
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
@@ -158,6 +202,127 @@ def cache_disabled_plugins(disabled_plugins: list[str]) -> None:
 
     with open("storage/cache/disabled_plugins.json", "w", encoding="utf-8") as f:
         f.write(json.dumps(disabled_plugins))
+
+
+def cache_pinned_plugins(pinned_plugins: list[str]) -> None:
+    if not os.path.exists("storage/cache"):
+        os.makedirs("storage/cache")
+    with open("storage/cache/pinned_plugins.json", "w", encoding="utf-8") as f:
+        f.write(json.dumps(pinned_plugins))
+
+
+def load_pinned_plugins() -> list[str]:
+    if not os.path.exists("storage/cache/pinned_plugins.json"):
+        return []
+    with open("storage/cache/pinned_plugins.json", "r", encoding="utf-8") as f:
+        try:
+            return json.loads(f.read())
+        except json.decoder.JSONDecodeError:
+            return []
+
+
+DEFAULT_AUTO_BUMP = {
+    "enabled": False,
+    "interval": 3600,
+    "last_time": "",
+    "all": False,
+    "included": [],
+    "excluded": [],
+}
+
+DEFAULT_AUTO_COMPLETE = {
+    "enabled": False,
+    "all": True,
+    "included": [],
+    "excluded": [],
+}
+
+DEFAULT_AUTO_WITHDRAWAL = {
+    "enabled": False,
+    "interval": 86400,
+    "last_time": "",
+    "credentials_type": "",
+    "card_id": "",
+    "sbp_bank_id": "",
+    "sbp_phone_number": "",
+    "usdt_address": "",
+}
+
+
+def load_json_config(path: str, default: dict) -> dict:
+    if not os.path.exists(path):
+        save_json_config(path, default.copy())
+        return default.copy()
+    with open(path, "r", encoding="utf-8") as f:
+        try:
+            data = json.load(f)
+        except json.decoder.JSONDecodeError:
+            data = default.copy()
+            save_json_config(path, data)
+            return data
+    for key, value in default.items():
+        if key not in data:
+            data[key] = value
+    return data
+
+
+def save_json_config(path: str, data: dict) -> None:
+    directory = os.path.dirname(path)
+    if directory and not os.path.exists(directory):
+        os.makedirs(directory)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
+
+
+def ensure_automation_configs() -> None:
+    save_json_config("configs/auto_bump.json", load_json_config("configs/auto_bump.json", DEFAULT_AUTO_BUMP))
+    save_json_config("configs/auto_complete.json", load_json_config("configs/auto_complete.json", DEFAULT_AUTO_COMPLETE))
+    save_json_config(
+        "configs/auto_withdrawal.json",
+        load_json_config("configs/auto_withdrawal.json", DEFAULT_AUTO_WITHDRAWAL),
+    )
+
+
+def item_matches_filter(item_name: str, cfg: dict) -> bool:
+    """Проверяет, подходит ли название товара под фильтр included/excluded/all."""
+    if not item_name:
+        return False
+    name_lower = item_name.lower()
+    excluded = cfg.get("excluded") or []
+    included = cfg.get("included") or []
+    if any(
+        any(phrase.lower() in name_lower or name_lower == phrase.lower() for phrase in group)
+        for group in excluded
+        if group
+    ):
+        return False
+    if cfg.get("all"):
+        return True
+    return any(
+        any(phrase.lower() in name_lower or name_lower == phrase.lower() for phrase in group)
+        for group in included
+        if group
+    )
+
+
+def parse_delivery_amount_from_name(item_name: str, default: int = 1) -> int:
+    """Парсит количество из названия лота (например «100 шт»)."""
+    if not item_name:
+        return default
+    patterns = [
+        r"(\d+)\s*шт",
+        r"(\d+)\s*штук",
+        r"x\s*(\d+)",
+        r"(\d+)\s*pcs",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, item_name, re.IGNORECASE)
+        if match:
+            try:
+                return max(1, int(match.group(1)))
+            except ValueError:
+                continue
+    return default
 
 
 def load_disabled_plugins() -> list[str]:

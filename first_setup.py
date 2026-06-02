@@ -3,7 +3,8 @@ from configparser import ConfigParser
 import time
 import telebot
 from colorama import Fore, Style
-from Utils.cardinal_tools import validate_proxy, hash_password
+from Utils.cardinal_tools import validate_proxy, validate_proxy_url, build_proxy, check_proxy, hash_password
+from Utils.config_loader import create_config_obj, load_main_config
 
 default_config = {
     "Playerok": {
@@ -12,12 +13,20 @@ default_config = {
         "autoResponse": "0",
         "autoDelivery": "0",
         "autoRestore": "0",
-        "restorePriorityMode": "premium"
+        "autoRaise": "0",
+        "multiDelivery": "0",
+        "autoDisable": "0",
+        "autoCompleteDeals": "0",
+        "autoWithdrawal": "0",
+        "restorePriorityMode": "premium",
+        "oldMsgGetMode": "0",
+        "keepSentMessagesUnread": "0"
     },
     "Telegram": {
         "enabled": "0",
         "token": "",
         "secretKeyHash": "ХешСекретногоПароля",
+        "proxy": "",
         "blockLogin": "0"
     },
     "Proxy": {
@@ -53,6 +62,59 @@ def contains_russian(text: str) -> bool:
         if 'А' <= char <= 'я' or char in 'Ёё':
             return True
     return False
+
+
+def input_proxy(set_telebot_proxy: bool = False) -> str | None:
+    while True:
+        proxy_input = input(f"{Fore.MAGENTA}{Style.BRIGHT}└───> {Style.RESET_ALL}").strip()
+
+        if not proxy_input:
+            if set_telebot_proxy:
+                telebot.apihelper.proxy = None
+            return None
+
+        try:
+            scheme, login, password, ip, port = validate_proxy_url(proxy_input)
+            proxy = build_proxy(scheme, login, password, ip, port)
+
+            if not check_proxy({"http": proxy, "https": proxy}):
+                print("\nНевалидные прокси. Попробуй еще раз!")
+                continue
+
+            if set_telebot_proxy:
+                telebot.apihelper.proxy = {"http": proxy, "https": proxy}
+
+            return proxy
+
+        except Exception as ex:
+            print(f"\nНеверный формат прокси: {ex}. Попробуй еще раз!")
+
+
+def setup_telegram_proxy():
+    cfg_path = "configs/_main.cfg"
+    main_cfg = load_main_config(cfg_path)
+    config = create_config_obj(cfg_path)
+    print(
+        f"\n{Fore.MAGENTA}{Style.BRIGHT}┌── {Fore.CYAN}"
+        f"Если хочешь использовать IPv4 прокси ДЛЯ ДОСТУПА К TELEGRAM"
+        f" – укажи их в формате scheme://login:password@ip:port, login:password@ip:port или ip:port."
+        f" Если ты не знаешь, что это такое или они тебе не нужны - просто нажми Enter. "
+        f"{Fore.RED}(* ^ ω ^){Style.RESET_ALL}")
+    while True:
+        try:
+            proxy = input_proxy(set_telebot_proxy=True)
+            username = telebot.TeleBot(main_cfg["Telegram"]["token"]).get_me().username
+            print(f"\n\n{Fore.CYAN}Подключение к Telegram успешно: @{username}...{Style.RESET_ALL}")
+            break
+        except Exception as ex:
+            print(f"\n\n{Fore.CYAN}Не удалось добавить прокси: {ex}...{Style.RESET_ALL}")
+
+    config.set("Telegram", "proxy", proxy or "")
+    print(f"{Fore.CYAN}Сохраняю конфиг...{Style.RESET_ALL}")
+    with open(cfg_path, "w", encoding="utf-8") as f:
+        config.write(f)
+    time.sleep(5)
+
 
 def first_setup():
     import colorama
@@ -91,6 +153,15 @@ def first_setup():
         if user_agent:
             config.set("Playerok", "user_agent", user_agent)
         break
+
+    print(f"\n{Fore.MAGENTA}{Style.BRIGHT}┌── {Fore.CYAN}"
+          f"Если хочешь использовать IPv4 прокси ДЛЯ ДОСТУПА К TELEGRAM"
+          f" – укажи их в формате scheme://login:password@ip:port, login:password@ip:port или ip:port."
+          f" Если ты не знаешь, что это такое или они тебе не нужны - просто нажми Enter. "
+          f"{Fore.RED}(* ^ ω ^){Style.RESET_ALL}")
+    tg_proxy = input_proxy(set_telebot_proxy=True)
+    if tg_proxy:
+        config.set("Telegram", "proxy", tg_proxy)
 
     while True:
         print(

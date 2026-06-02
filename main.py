@@ -41,7 +41,7 @@ logo = """\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;
 \033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;52m>\033[0m\033[38;5;88m|\033[0m\033[38;5;124m]\033[0m\033[38;5;124m]\033[0m\033[38;5;124m+\033[0m\033[38;5;88m?\033[0m\033[38;5;88m?\033[0m\033[38;5;124m+\033[0m\033[38;5;124m+\033[0m\033[38;5;124m+\033[0m\033[38;5;124m+\033[0m\033[38;5;88m?\033[0m\033[38;5;88m?\033[0m\033[38;5;124m+\033[0m\033[38;5;124m]\033[0m\033[38;5;124m]\033[0m\033[38;5;88m|\033[0m\033[38;5;52m>\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m
 \033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m"""
 
-VERSION = "1.0.5"
+VERSION = "1.0.6"
 
 Utils.cardinal_tools.set_console_title(f"Playerok Cardinal v{VERSION}")
 
@@ -60,6 +60,9 @@ for i in files:
     if not os.path.exists(i):
         with open(i, "w", encoding="utf-8") as f:
             ...
+
+import Utils.cardinal_tools as _ct
+_ct.ensure_automation_configs()
 
 colorama.init()
 
@@ -85,18 +88,6 @@ if sys.platform == "linux" and os.getenv('POC_IS_RUNNING_AS_SERVICE', '0') == '1
     pidFile.write(pid)
     pidFile.close()
     logger.info(f"$GREENPID файл создан, PID процесса: {pid}")
-
-directory = 'plugins'
-if os.path.exists(directory):
-    for filename in os.listdir(directory):
-        if filename.endswith(".py"):
-            filepath = os.path.join(directory, filename)
-            with open(filepath, 'r', encoding='utf-8') as file:
-                data = file.read()
-            if '"<i>Разработчик:</i> " + CREDITS' in data:
-                data = data.replace('"<i>Разработчик:</i> " + CREDITS', '"KaDerix"')
-                with open(filepath, 'w', encoding='utf-8') as file:
-                    file.write(data)
 
 try:
     logger.info("$MAGENTAЗагружаю конфиг _main.cfg...")
