@@ -102,35 +102,36 @@
 1. Выполните команду: `wget https://raw.githubusercontent.com/KITUSTTT/PlayerokCardinal/main/install-poc.sh -O install-poc.sh && bash install-poc.sh`
 2. Следуйте инструкциям установщика. Скрипт установит всё необходимое и запустит бота как фоновый процесс.
 
-**Переустановка на существующем VPS:** при запуске `install-poc.sh` выберите режим **2** (существующий пользователь, например `poc`). Скрипт выполнит `git pull`, обновит venv и перезапустит сервис.
+**Переустановка:** запустите `install-poc.sh`, введите существующего пользователя и ответьте **y** на «Использовать его?».
 
 ### Управление на Linux (VPS)
 
-Правильное имя systemd-сервиса: **`PlayerokCardinal@poc`** (символ `@` обязателен).
+Как в **FunPay Cardinal**: сервис называется **`PlayerokCardinal@ИМЯ_ПОЛЬЗОВАТЕЛЯ`**, где `ИМЯ_ПОЛЬЗОВАТЕЛЯ` — Linux-пользователь, которого вы вводите при установке (например `poc` → `PlayerokCardinal@poc`).
 
-| Неверно | Правильно |
-|---------|-----------|
+| Неверно | Правильно (если пользователь `poc`) |
+|---------|-------------------------------------|
 | `PlayerokCardinalPOC` | `PlayerokCardinal@poc` |
 | `playerok-cardinal` | `PlayerokCardinal@poc` |
-| `POC@poc` | `PlayerokCardinal@poc` |
-
-После установки доступна команда **`pocctl`**:
 
 ```bash
-sudo pocctl restart    # перезапуск
-sudo pocctl status     # статус
-sudo pocctl logs       # логи
-sudo pocctl update     # git pull + pip + restart
-sudo pocctl health     # проверка версии, venv, websocket
+sudo systemctl restart PlayerokCardinal@poc   # замените poc на ваше имя
+sudo systemctl status PlayerokCardinal@poc -n100
 ```
 
-Зависимости устанавливайте **только** в venv пользователя бота, не от root:
+Сокращение **`pocctl`** (помнит пользователя из `/etc/default/pocctl`):
+
+```bash
+sudo pocctl restart
+sudo pocctl health
+```
+
+Зависимости — только в venv пользователя бота:
 
 ```bash
 sudo -u poc /home/poc/pyvenv/bin/pip install -r /home/poc/PlayerokCardinal/requirements.txt
 ```
 
-Подсказки по командам сохраняются в `/home/poc/POC_SERVICE.txt`.
+Подсказки: `/home/ВАШ_ПОЛЬЗОВАТЕЛЬ/POC_SERVICE.txt`
 
 **Чеклист после деплоя:**
 

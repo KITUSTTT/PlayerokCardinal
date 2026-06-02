@@ -1,18 +1,46 @@
 #!/bin/bash
-# Playerok Cardinal — управление systemd-сервисом на Linux VPS.
+# Playerok Cardinal — управление systemd-сервисом (как FunPayCardinal@${username}).
 # Использование: sudo pocctl [start|stop|restart|status|logs|update|health]
 
 set -euo pipefail
 
-POC_USER="${POC_USER:-poc}"
+# Имя пользователя задаётся при установке (install-poc.sh) → /etc/default/pocctl
+if [[ -f /etc/default/pocctl ]]; then
+    # shellcheck source=/dev/null
+    source /etc/default/pocctl
+fi
+
+POC_USER="${POC_USER:-}"
+
+detect_poc_user() {
+    if [[ -n "${POC_USER}" ]]; then
+        return
+    fi
+    local unit
+    unit=$(systemctl list-units --type=service --all --plain --no-legend 'PlayerokCardinal@*.service' 2>/dev/null \
+        | awk '{print $1}' | head -1)
+    if [[ -n "${unit}" ]]; then
+        POC_USER="${unit#PlayerokCardinal@}"
+        POC_USER="${POC_USER%.service}"
+    fi
+    if [[ -z "${POC_USER}" ]]; then
+        POC_USER="poc"
+    fi
+}
+
+detect_poc_user
+
 POC_HOME="/home/${POC_USER}"
 POC_DIR="${POC_HOME}/PlayerokCardinal"
 POC_VENV="${POC_HOME}/pyvenv"
-POC_SERVICE="PlayerokCardinal@${POC_USER}.service"
+
+unit_name() {
+    echo "PlayerokCardinal@${POC_USER}"
+}
 
 usage() {
     cat <<EOF
-Playerok Cardinal — управление сервисом
+Playerok Cardinal — управление сервисом (как FunPay Cardinal)
 
   sudo pocctl start     — запустить бота
   sudo pocctl stop      — остановить
@@ -22,10 +50,11 @@ Playerok Cardinal — управление сервисом
   sudo pocctl update    — git pull + pip install + restart
   sudo pocctl health    — проверка версии, venv, websocket, сервиса
 
-Переменные окружения:
-  POC_USER=poc          — пользователь Linux, от имени которого работает бот
+Systemd unit: $(unit_name)
+Пользователь Linux (после @): ${POC_USER}
 
-Systemd unit: ${POC_SERVICE}
+Те же команды напрямую:
+  sudo systemctl restart $(unit_name)
 EOF
 }
 
@@ -34,10 +63,6 @@ require_root() {
         echo "Запустите с sudo: sudo pocctl $*" >&2
         exit 1
     fi
-}
-
-unit_name() {
-    echo "PlayerokCardinal@${POC_USER}"
 }
 
 cmd_start() {
@@ -82,9 +107,9 @@ cmd_update() {
     systemctl restart "$(unit_name)"
     sleep 2
     if systemctl is-active --quiet "$(unit_name)"; then
-        echo "Обновление завершено, сервис активен."
+        echo "Обновление завершено, сервис $(unit_name) активен."
     else
-        echo "Ошибка: сервис не запустился после обновления." >&2
+        echo "Ошибка: сервис $(unit_name) не запустился после обновления." >&2
         journalctl -u "$(unit_name)" -n 30 --no-pager
         exit 1
     fi
@@ -92,22 +117,22 @@ cmd_update() {
 
 cmd_health() {
     echo "=== Playerok Cardinal health ==="
-    echo "User:    ${POC_USER}"
-    echo "Service: $(unit_name)"
-    echo "Dir:     ${POC_DIR}"
-    echo "Venv:    ${POC_VENV}"
+    echo "User (@): ${POC_USER}"
+    echo "Service:  $(unit_name)"
+    echo "Dir:      ${POC_DIR}"
+    echo "Venv:     ${POC_VENV}"
 
     if [[ -f "${POC_DIR}/main.py" ]]; then
         version=$(grep -m1 '^VERSION' "${POC_DIR}/main.py" | sed 's/.*"\(.*\)".*/\1/' || echo "?")
-        echo "Version: ${version}"
+        echo "Version:  ${version}"
     else
-        echo "Version: main.py not found"
+        echo "Version:  main.py not found"
     fi
 
     if [[ -f "${POC_DIR}/configs/_main.cfg" ]]; then
-        echo "Config:  OK (_main.cfg exists)"
+        echo "Config:   OK (_main.cfg exists)"
     else
-        echo "Config:  MISSING (_main.cfg)"
+        echo "Config:   MISSING (_main.cfg)"
     fi
 
     if [[ -x "${POC_VENV}/bin/python" ]]; then
@@ -115,19 +140,19 @@ cmd_health() {
             ws_ver=$(sudo -u "${POC_USER}" "${POC_VENV}/bin/python" -c "import websocket; print(websocket.__version__)" 2>/dev/null || echo "?")
             echo "Websocket: OK (${ws_ver})"
         else
-            echo "Websocket: FAIL (pip install websocket-client in ${POC_VENV})"
+            echo "Websocket: FAIL (pip install -r requirements.txt in ${POC_VENV})"
         fi
     else
         echo "Venv python: MISSING"
     fi
 
     if systemctl is-active --quiet "$(unit_name)" 2>/dev/null; then
-        echo "Service: active (running)"
+        echo "Service:  active (running)"
     elif systemctl is-enabled --quiet "$(unit_name)" 2>/dev/null; then
-        echo "Service: enabled but not running ($(systemctl is-active "$(unit_name)" 2>/dev/null || echo inactive))"
+        echo "Service:  enabled but not running ($(systemctl is-active "$(unit_name)" 2>/dev/null || echo inactive))"
     else
-        echo "Service: not found or disabled"
-        echo "  Правильная команда: sudo systemctl restart $(unit_name)"
+        echo "Service:  not found or disabled"
+        echo "  Команда: sudo systemctl restart $(unit_name)"
     fi
 }
 
