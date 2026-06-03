@@ -240,6 +240,13 @@ class Cardinal(object):
     def get_balance(self):
         """Получает баланс аккаунта"""
         try:
+            try:
+                full_balance = self.account.fetch_viewer_balance()
+                if full_balance and hasattr(self.account, "profile") and self.account.profile:
+                    self.account.profile.balance = full_balance
+                    return full_balance
+            except Exception:
+                pass
             if hasattr(self.account, 'profile') and self.account.profile:
                 if hasattr(self.account.profile, 'balance') and self.account.profile.balance:
                     return self.account.profile.balance

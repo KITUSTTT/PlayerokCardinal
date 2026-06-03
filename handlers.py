@@ -166,10 +166,8 @@ def _deal_item_name(deal) -> str:
 
 
 def _deal_price_rub(deal) -> float:
-    if hasattr(deal, "item") and deal.item and hasattr(deal.item, "price"):
-        price = deal.item.price or 0
-        return price / 100 if price else 0
-    return 0
+    from Utils.playerok_money import deal_order_price_rub
+    return deal_order_price_rub(deal)
 
 
 def enrich_deal_handler(c: Cardinal, event: NewDealEvent | ItemPaidEvent):

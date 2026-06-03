@@ -30,5 +30,5 @@ ReadWritePaths=/home/%i/PlayerokCardinal /home/%i/pyvenv -/run/PlayerokCardinal
 [Unit]
 After=network.target
 Description=PlayerokCardinal Bot Service (on %I)
-Documentation=https://github.com/KITUSTTT/PlayerokCardinal
+Documentation=https://github.com/KaDerix/PlayerokCardinal
 

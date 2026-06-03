@@ -270,10 +270,8 @@ def generate_profile_text(cardinal: Cardinal) -> str:
     except:
         pass
     
-    # Форматируем баланс (баланс уже в рублях, не делим на 100)
-    balance_rub = balance.value if balance.value else 0
-    balance_available = balance.available if balance.available else 0
-    balance_frozen = balance.frozen if balance.frozen else 0
+    from Utils.playerok_money import balance_display_rub
+    balance_rub, balance_available, balance_frozen = balance_display_rub(balance)
     
     return f"""Статистика аккаунта <b><i>{account.username}</i></b>
 

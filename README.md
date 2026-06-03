@@ -30,7 +30,6 @@
 - Автоответ на заготовленные команды.
 - Автовосстановление лотов после продажи.
 - Автодеактивация лотов, если товары закончились.
-- Авто-подтверждение сделок и авто-вывод средств (настраивается в Telegram).
 - Вечный онлайн.
 - Уведомления в телеграм.
 - Полноценная ПУ в Telegram.
@@ -75,23 +74,17 @@
 
 ## 🔌 Плагины
 
-Система плагинов похожа с [FunPay Cardinal](https://github.com/sidor0912/FunPayCardinal): один файл `.py` в папке `plugins/`.
-
-- Платные и официальные плагины — в [Telegram-боте](https://t.me/KaDerix_Shop_Bot)
-- Установка через Telegram: `/menu` → **Плагины** → **Добавить плагин** (или `/upload_plugin`)
-- После загрузки — `/restart`
-
-Не устанавливайте плагины из непроверенных источников.
+[Канал с плагинами](https://t.me/KaDerix_Shop_Bot)
 
 ## ⬇️ Установка
 
-Арендовать виртуальный сервер можно на FirstByte. Выбирайте Ubuntu 20+ версии, остальные параметры не важны.
+Арендовать виртуальный сервер можно на FirstByte. Выбирайте Ubuntu 22-24 версии, остальные параметры не важны.
 
 ### 🔷 Windows
 
 1. Скачайте и установите Python 3.11.0.
     1. При установке поставьте галочку у `Add python.exe to PATH` на первом экране установки.
-2. Скачайте Playerok Cardinal
+2. Скачайте [Playerok Cardinal](https://github.com/KaDerix/PlayerokCardinal)
 3. Перенесите архив `PlayerokCardinal-main.zip` в нужное Вам место и распакуйте его.
 4. Перейдите в папку `PlayerokCardinal-main`.
 5. Запустите файл `Setup.bat`. Дождитесь окончания загрузки пакетов.
@@ -99,88 +92,26 @@
 
 ### ♨️ Linux (Ubuntu)
 
-1. Выполните команду: `wget https://raw.githubusercontent.com/KITUSTTT/PlayerokCardinal/main/install-poc.sh -O install-poc.sh && bash install-poc.sh`
-2. Следуйте инструкциям установщика. Скрипт установит всё необходимое и запустит бота как фоновый процесс.
+1. Выполните команду: `wget https://raw.githubusercontent.com/KaDerix/PlayerokCardinal/main/install-poc.sh -O install-poc.sh && bash install-poc.sh`
+2. Следуйте инструкциям установщика. Данный скрипт автоматически установит всё необходимое и запустит бота как фоновый процесс.
 
-**Переустановка:** запустите `install-poc.sh`, введите существующего пользователя и ответьте **y** на «Использовать его?».
+## 🔌 Установка плагинов
 
-### Управление на Linux (VPS)
+Не устанавливайте плагины из непроверенных источников. Через систему плагинов злоумышленники могут получить полный доступ к Вашему устройству или аккаунту Playerok. Установка плагинов крайне проста.
 
-Как в **FunPay Cardinal**: сервис называется **`PlayerokCardinal@ИМЯ_ПОЛЬЗОВАТЕЛЯ`**, где `ИМЯ_ПОЛЬЗОВАТЕЛЯ` — Linux-пользователь, которого вы вводите при установке (например `poc` → `PlayerokCardinal@poc`).
-
-| Неверно | Правильно (если пользователь `poc`) |
-|---------|-------------------------------------|
-| `PlayerokCardinalPOC` | `PlayerokCardinal@poc` |
-| `playerok-cardinal` | `PlayerokCardinal@poc` |
-
-```bash
-sudo systemctl restart PlayerokCardinal@poc   # замените poc на ваше имя
-sudo systemctl status PlayerokCardinal@poc -n100
-```
-
-Сокращение **`pocctl`** (помнит пользователя из `/etc/default/pocctl`):
-
-```bash
-sudo pocctl restart
-sudo pocctl health
-```
-
-Зависимости — только в venv пользователя бота:
-
-```bash
-sudo -u poc /home/poc/pyvenv/bin/pip install -r /home/poc/PlayerokCardinal/requirements.txt
-```
-
-Подсказки: `/home/ВАШ_ПОЛЬЗОВАТЕЛЬ/POC_SERVICE.txt`
-
-**Чеклист после деплоя:**
-
-1. `sudo pocctl health` — версия, websocket OK, service active
-2. `/logs` в Telegram — нет `PERSISTED_QUERY_NOT_FOUND`
-3. Профиль на playerok.com показывает **онлайн**
-4. Тестовая покупка → уведомление в TG + автовыдача / AutoStars
-
-## 🔒 Cookie `__ddg5_` (DDoS-Guard)
-
-Playerok теперь требует cookie `__ddg5_` вместе с `token`. Без неё GraphQL может отвечать `INTERNAL_SERVER_ERROR`.
-
-1. Откройте [playerok.com](https://playerok.com) в браузере, войдите в аккаунт.
-2. DevTools (F12) → Application → Cookies → `playerok.com`.
-3. Скопируйте значения `token` и `__ddg5_` в `configs/_main.cfg`:
-   - `token` — как раньше;
-   - `ddg5` — значение `__ddg5_` (без имени cookie).
-4. Либо вставьте всю строку cookies в поле `cookies` (формат `name=value; name2=value2`).
-5. `user_agent` в конфиге должен совпадать с браузером, из которого взяты cookies.
-
-После обновления кода на VPS: `sudo pocctl update` или `sudo -u poc git pull` + pip в venv + `sudo pocctl restart`.
-
-## 🌐 Прокси для Telegram
-
-Если Telegram заблокирован в вашей сети, укажите прокси **для доступа к Telegram-боту** (это не то же самое, что меню «Прокси» в боте — оно настраивает доступ к Playerok).
-
-- При первой установке — на соответствующем шаге `first_setup`.
-- На уже настроенном боте: `python setup_telegram_proxy.py` (из папки проекта).
-- Форматы: `scheme://login:password@ip:port`, `login:password@ip:port` или `ip:port` (схемы: `http`, `https`, `socks5`, `socks5h`).
-- После смены прокси перезапустите бота (`/restart` в Telegram или `sudo pocctl restart` на VPS).
+1. Введите команду `/menu` в диалоге с ботом Telegram.
+2. Нажмите кнопку 🧩 **Плагины**.
+3. Нажмите кнопку ➕ **Добавить плагин**.
+4. Отправьте или перешлите боту файл плагина.
 
 ## ❓ Мне нужна помощь
 
-Если у вас остались какие-либо вопросы, мы с радостью ответим на них в нашем Telegram чате.
+Если у вас остались какие-либо вопросы, мы с радостью ответим на них в нашем [Telegram чате](https://t.me/playerok_cardinall).
 
 ## ⭐ Star it
 
-Если вам удобно пользоваться Playerok Cardinal, не забудьте поставить ⭐ звезду ⭐ данному проекту в правом верхнем углу GitHub-страницы (нужно быть авторизованным в свой аккаунт) :)
-
-## 💰 Поддержать проект
-
-Если вам нравится проект и вы хотите поддержать его развитие:
-
-- **Telegram**: [@KaDerix](https://t.me/KaDerix)
-
-## About
-
-🟦 Бот для упрощения взаимодействия продавцов с биржей Playerok
+Если вам удобно пользоваться Playerok Cardinal, не забудьте поставить ⭐ звезду ⭐ данному проекту в правом верхнем углу [GitHub-страницы](https://github.com/KaDerix/PlayerokCardinal) (нужно быть авторизованным в свой аккаунт) :)
 
 ---
 
-**Примечание:** Данный бот написан на базе [FunPay Cardinal](https://github.com/sidor0912/FunPayCardinal). FunPay Cardinal - это проект для автоматизации биржи FunPay, который не имеет отношения к данному проекту. Мы выражаем благодарность разработчикам FunPay Cardinal за отличную архитектуру и дизайн.
+**Примечание:** Данный бот написан на базе [FunPay Cardinal](https://github.com/sidor0912/FunPayCardinal). FunPay Cardinal — проект для автоматизации биржи FunPay, который не имеет отношения к данному проекту. Мы выражаем благодарность разработчикам FunPay Cardinal за отличную архитектуру и дизайн.

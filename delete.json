@@ -1,9 +1,3 @@
 [
-  "scripts",
-  "PLUGINS_GUIDE.md",
-  "INSTALL_LINUX.md",
-  "QUICK_START.md",
-  "GET_TOKEN.md",
-  "plugins/fast_stars.py",
   "plugins/example_logger.py"
 ]

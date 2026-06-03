@@ -19,7 +19,7 @@ logo="\e[38;5;0m.\e[0m\e[38;5;0m.\e[0m\e[38;5;0m.\e[0m\e[38;5;0m.\e[0m\e[38;5;0m
 clear
 echo -e $logo
 
-echo -e "\n\n${RED} * GitHub ${CYAN}github.com/KITUSTTT/PlayerokCardinal${RESET}"
+echo -e "\n\n${RED} * GitHub ${CYAN}github.com/KaDerix/PlayerokCardinal${RESET}"
 echo -e "${RED} * Telegram ${CYAN}t.me/KaDerix${RESET}"
 echo -e "\n\n\n"
 
@@ -196,7 +196,7 @@ if ! sudo apt install -y git ; then
   exit 2
 fi
 
-gh_repo="KITUSTTT/PlayerokCardinal"
+gh_repo="KaDerix/PlayerokCardinal"
 poc_dir="/home/$username/PlayerokCardinal"
 
 sudo git config --global --add safe.directory "$poc_dir" 2>/dev/null || true
@@ -292,7 +292,7 @@ esac
 
 clear
 echo -e $logo
-echo -e '\n\n\e[1;91m * GitHub \e[1;96mgithub.com/KITUSTTT/PlayerokCardinal\e[0m'
+echo -e '\n\n\e[1;91m * GitHub \e[1;96mgithub.com/KaDerix/PlayerokCardinal\e[0m'
 echo -e '\e[1;91m * Telegram \e[1;96mt.me/KaDerix\e[0m'
 
 echo -e "\n\n\e[1;92m################################################################################"
@@ -352,7 +352,7 @@ fi
 
 clear
 echo -e $logo
-echo -e '\n\n\e[1;91m * GitHub \e[1;96mgithub.com/KITUSTTT/PlayerokCardinal\e[0m'
+echo -e '\n\n\e[1;91m * GitHub \e[1;96mgithub.com/KaDerix/PlayerokCardinal\e[0m'
 echo -e '\e[1;91m * Telegram \e[1;96mt.me/KaDerix\e[0m'
 
 echo -e "\n\n\e[1;92m################################################################################"

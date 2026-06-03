@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from PlayerokAPI.enums import ItemStatuses
 
 
-@dataclass
+@dataclass(frozen=True)
 class SubCategoryStub:
     id: int | str
     name: str = ""

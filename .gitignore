@@ -12,6 +12,8 @@
 /configs
 /plugins
 
+/FunPayAPI
+
 /build
 /dist
 test.py

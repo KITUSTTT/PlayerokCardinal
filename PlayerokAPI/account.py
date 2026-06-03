@@ -355,8 +355,34 @@ class Account:
         
         if data.get("__typename") == "User": 
             self.profile = account_profile(data)
+
+        try:
+            full_balance = self.fetch_viewer_balance()
+            if full_balance and self.profile:
+                self.profile.balance = full_balance
+        except Exception:
+            pass
         
         return self
+
+    def fetch_viewer_balance(self) -> types.AccountBalance | None:
+        """Полный баланс (available, frozen, pendingIncome) через viewerBalance."""
+        headers = {"accept": "*/*"}
+        payload = {
+            "operationName": "viewerBalance",
+            "variables": json.dumps({}),
+            "extensions": json.dumps({
+                "persistedQuery": {
+                    "version": 1,
+                    "sha256Hash": PERSISTED_QUERIES.get("viewerBalance"),
+                }
+            }),
+        }
+        r = self.request("get", f"{self.base_url}/graphql", headers, payload).json()
+        bal = (r.get("data") or {}).get("viewer", {}).get("balance")
+        if not bal:
+            return None
+        return account_balance(bal)
     
     def get_user(
         self, 
@@ -481,23 +507,39 @@ class Account:
         """
 
         headers = {"accept": "*/*"}
-        payload = {
-            "operationName": "deal",
-            "variables": json.dumps({
-                "id": deal_id,
-                "hasSupportAccess": False,
-                "showForbiddenImage": True
-            }),
-            "extensions": json.dumps({
-                "persistedQuery": {
-                    "version": 1,
-                    "sha256Hash": PERSISTED_QUERIES.get("deal")
+        variables = json.dumps({
+            "id": deal_id,
+            "hasSupportAccess": False,
+            "showForbiddenImage": True
+        })
+        deal_hashes = [
+            PERSISTED_QUERIES.get("deal"),
+            "cfd4b5140f72bfeab22aa062359c99eac6500202d2270f2e8980d8290ef23fe7",
+        ]
+        last_err: Exception | None = None
+        for sha in deal_hashes:
+            if not sha:
+                continue
+            try:
+                payload = {
+                    "operationName": "deal",
+                    "variables": variables,
+                    "extensions": json.dumps({
+                        "persistedQuery": {
+                            "version": 1,
+                            "sha256Hash": sha
+                        }
+                    })
                 }
-            })
-        } 
-        
-        r = self.request("get", f"{self.base_url}/graphql", headers, payload).json()
-        return item_deal(r["data"]["deal"])
+                r = self.request("get", f"{self.base_url}/graphql", headers, payload).json()
+                deal_data = (r.get("data") or {}).get("deal")
+                if deal_data:
+                    return item_deal(deal_data)
+            except Exception as e:
+                last_err = e
+        if last_err:
+            raise last_err
+        raise RuntimeError(f"Сделка {deal_id} не найдена")
     
     def update_deal(
         self, 

@@ -21,10 +21,16 @@ HEADERS = {
 # Пользовательские данные — не удалять при установке релиза (delete.json в архиве).
 _PRESERVE_DELETE_PREFIXES = ("storage/",)
 _PRESERVE_DELETE_SUFFIXES = ("_config.json", "_settings.json", "_data.json")
+# Не удалять при обновлении из GitHub-релиза (см. delete.json).
+_PRESERVE_DELETE_FILES = frozenset({
+    "plugins/fast_stars.py",
+})
 
 
 def _should_preserve_on_delete(path: str) -> bool:
     normalized = path.replace("\\", "/").lstrip("./")
+    if normalized in _PRESERVE_DELETE_FILES:
+        return True
     if any(normalized.startswith(prefix) for prefix in _PRESERVE_DELETE_PREFIXES):
         return True
     if any(normalized.endswith(suffix) for suffix in _PRESERVE_DELETE_SUFFIXES):
@@ -103,7 +109,7 @@ def get_tags(current_tag: str) -> list[str] | None:
         max_pages = 10  # Ограничение на количество страниц
         found_current = False
         
-        repo_url = "https://api.github.com/repos/KITUSTTT/PlayerokCardinal/tags"
+        repo_url = "https://api.github.com/repos/KaDerix/PlayerokCardinal/tags"
         logger.info(_("upd_github_repo", repo_url))
         
         while page <= max_pages:
@@ -183,7 +189,7 @@ def get_releases(from_tag: str) -> list[Release] | None:
         while page <= max_pages:
             if page != 1:
                 time.sleep(1)
-            response = requests.get(f"https://api.github.com/repos/KITUSTTT/PlayerokCardinal/releases?page={page}",
+            response = requests.get(f"https://api.github.com/repos/KaDerix/PlayerokCardinal/releases?page={page}",
                                     headers=HEADERS, timeout=10)
             if not response.status_code == 200:
                 logger.debug(f"Update status code is {response.status_code}!")
@@ -257,11 +263,11 @@ def get_releases(from_tag: str) -> list[Release] | None:
         logger.warning(_("upd_no_releases_after_tag", from_tag))
         # Пытаемся получить zipball_url из тега напрямую
         try:
-            tag_response = requests.get(f"https://api.github.com/repos/KITUSTTT/PlayerokCardinal/git/refs/tags/{from_tag}",
+            tag_response = requests.get(f"https://api.github.com/repos/KaDerix/PlayerokCardinal/git/refs/tags/{from_tag}",
                                        headers=HEADERS, timeout=10)
             if tag_response.status_code == 200:
                 # Тег существует, создаем релиз из тега
-                sources = f"https://github.com/KITUSTTT/PlayerokCardinal/archive/refs/tags/{from_tag}.zip"
+                sources = f"https://github.com/KaDerix/PlayerokCardinal/archive/refs/tags/{from_tag}.zip"
                 release = Release(from_tag, f"Release {from_tag}", sources)
                 logger.info(_("upd_releases_found", 1))
                 return [release]

@@ -1,5 +1,6 @@
 """
-FunPay API compatibility layer for Playerok Cardinal plugins.
+Слой совместимости для плагинов (get_lot_fields, SubCategoryTypes).
+Не FunPay API — только методы, которые ожидают старые плагины Cardinal.
 """
 from __future__ import annotations
 

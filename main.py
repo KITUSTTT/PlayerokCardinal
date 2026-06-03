@@ -41,7 +41,7 @@ logo = """\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;
 \033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;52m>\033[0m\033[38;5;88m|\033[0m\033[38;5;124m]\033[0m\033[38;5;124m]\033[0m\033[38;5;124m+\033[0m\033[38;5;88m?\033[0m\033[38;5;88m?\033[0m\033[38;5;124m+\033[0m\033[38;5;124m+\033[0m\033[38;5;124m+\033[0m\033[38;5;124m+\033[0m\033[38;5;88m?\033[0m\033[38;5;88m?\033[0m\033[38;5;124m+\033[0m\033[38;5;124m]\033[0m\033[38;5;124m]\033[0m\033[38;5;88m|\033[0m\033[38;5;52m>\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m
 \033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m\033[38;5;0m.\033[0m"""
 
-VERSION = "1.1.1"
+VERSION = "1.1.2"
 
 Utils.cardinal_tools.set_console_title(f"Playerok Cardinal v{VERSION}")
 
@@ -74,7 +74,7 @@ logger.debug("------------------------------------------------------------------
 print(f"{Style.RESET_ALL}{logo}")
 print(f"{Fore.RED}{Style.BRIGHT}v{VERSION}{Style.RESET_ALL}\n")
 print(f"{Fore.MAGENTA}{Style.BRIGHT}By {Fore.CYAN}{Style.BRIGHT}@KaDerix{Style.RESET_ALL}")
-print(f"{Fore.MAGENTA}{Style.BRIGHT} * GitHub: {Fore.CYAN}{Style.BRIGHT}github.com/KITUSTTT/PlayerokCardinal{Style.RESET_ALL}")
+print(f"{Fore.MAGENTA}{Style.BRIGHT} * GitHub: {Fore.CYAN}{Style.BRIGHT}github.com/KaDerix/PlayerokCardinal{Style.RESET_ALL}")
 print(f"{Fore.MAGENTA}{Style.BRIGHT} * Telegram: {Fore.CYAN}{Style.BRIGHT}t.me/KaDerix{Style.RESET_ALL}")
 
 if not os.path.exists("configs/_main.cfg"):
